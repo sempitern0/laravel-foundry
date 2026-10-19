@@ -24,7 +24,7 @@ try {
         if($slug -notmatch '^[a-z][a-z0-9-]{0,40}$') { throw "Invalid tenant slug: $slug" }
         $hostName="$slug.$domain"
         $scheme=if($https){'https'}else{'http'}
-        $url="$scheme\://$hostName\:$port$path".Replace('\','')
+        $url = '{0}://{1}:{2}{3}' -f $scheme, $hostName, $port, $path
         $args=@('--silent','--show-error','--max-time','10','--resolve',"${hostName}:${port}:127.0.0.1",'-D','-','-o','NUL',$url)
         if($https) {
             $cert=Join-Path $root 'certs/caddy-local-root.crt'
