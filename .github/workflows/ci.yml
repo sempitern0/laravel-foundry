@@ -4,13 +4,31 @@ on:
     branches: [main]
   pull_request:
 jobs:
-  validate:
+  unix-scripts:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check shell syntax
-        run: sh -n scripts/bootstrap.sh scripts/configure-app.sh
+      - name: Validate POSIX scripts
+        run: sh -n scripts/bootstrap.sh scripts/configure-app.sh scripts/setup.sh scripts/backup.sh scripts/destroy.sh
+      - name: Validate Make recipes
+        run: make -n setup STARTER=svelte && make -n backup && make -n destroy
       - name: Validate Compose
         run: docker compose config -q
-      - name: Validate Makefile
-        run: make -n up && make -n migrate
+  powershell-scripts:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse all native Windows scripts
+        shell: powershell
+        run: |
+          $scripts = Get-ChildItem scripts -Filter '*.ps1'
+          foreach ($script in $scripts) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($script.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error "$($script.Name): $_" }
+              exit 1
+            }
+            Write-Host "Parsed: $($script.Name)"
+          }

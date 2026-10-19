@@ -1,93 +1,102 @@
 # Laravel Let's Go
 
-A **frontend-neutral Laravel development and self-hosting template**: PHP-FPM, Nginx, PostgreSQL, optional Redis, Docker Compose, local email, and production Caddy HTTPS. **No Sail, Herd, required SaaS or paid local database.**
-
-The infrastructure does not dictate which frontend or authentication approach your project uses. Choose the Laravel starter *when you create an application*, and version the resulting source. This is a Laravel template, **not** a template that pretends SvelteKit or Astro run inside Laravel.
+**Frontend-neutral Laravel template with native Windows PowerShell and Linux/macOS shell support.** No Laravel Sail, Herd or paid local database. Docker Compose runs PHP-FPM, Nginx, PostgreSQL, Mailpit and Node; Redis, queue workers and scheduler are optional.
 
 ## Requirements
 
-Docker Engine + Compose v2, Git, Make and a POSIX shell. For Windows use WSL2 and keep the checkout on the WSL filesystem for acceptable bind-mount performance. No PHP, Composer, Node or PostgreSQL installation on your host. For Linux/WSL set `DEV_UID` and `DEV_GID` in the root `.env` to match `id -u` and `id -g` if these differ from 1000.
+- Docker Desktop with Linux containers + Compose v2 on Windows, or Docker Engine + Compose v2 on Linux.
+- Git and GNU Make if you want `make` shortcuts. **PowerShell users can also run the scripts directly without Make.**
+- No host PHP, Composer, Node or PostgreSQL.
+- On Linux set `DEV_UID` and `DEV_GID` in root `.env` to match your user when necessary. Windows uses Docker Desktop's bind mount handling.
 
-## First run: choose your Laravel starter
+## Initialize a Laravel project
 
-```sh
-git clone https://github.com/sempitern0/laravel-letsgo.git my-app
-cd my-app
-make setup
+Use `make setup` to choose the starter interactively, or specify it explicitly:
+
+| Frontend choice | GNU Make (all platforms) | Native PowerShell (Windows) |
+| --- | --- | --- |
+| Laravel only (default) | `make setup STARTER=laravel` | `.\scripts\setup.ps1 -Starter laravel` |
+| Svelte + Inertia | `make setup STARTER=svelte` | `.\scripts\setup.ps1 -Starter svelte` |
+| Vue + Inertia | `make setup STARTER=vue` | `.\scripts\setup.ps1 -Starter vue` |
+| React + Inertia | `make setup STARTER=react` | `.\scripts\setup.ps1 -Starter react` |
+| Livewire | `make setup STARTER=livewire` | `.\scripts\setup.ps1 -Starter livewire` |
+
+For example, from **Windows PowerShell**:
+
+```powershell
+make setup STARTER=svelte
+# Or without GNU Make:
+.\scripts\setup.ps1 -Starter svelte
 ```
 
-`make setup` displays a choice on an interactive terminal. Press Enter for **plain Laravel**, with no Inertia or authentication starter. To use the template unattended or pick explicitly:
-
-| Choice | Command | Included by the selected official starter |
-| --- | --- | --- |
-| Plain Laravel (default) | `make setup STARTER=laravel` | Standard Laravel app with Blade/Vite; no auth starter |
-| Svelte | `make setup STARTER=svelte` | Svelte + Inertia and official authentication flows |
-| Vue | `make setup STARTER=vue` | Vue + Inertia and official authentication flows |
-| React | `make setup STARTER=react` | React + Inertia and official authentication flows |
-| Livewire | `make setup STARTER=livewire` | Laravel Livewire starter and official authentication flows |
-
-The implementation clones the appropriate **official Laravel GitHub starter** (Laravel 13.x for plain Laravel; official starter-kit main branches for the rest), drops its nested Git history, runs Composer inside the PHP container, removes Sail if included, configures PostgreSQL + Mailpit, generates an application key **only if missing**, migrates, installs npm dependencies and launches Vite. No local PHP/Node installs.
-
-- Site: http://localhost:8080
-- Email testing: http://localhost:8025
-- Vite: localhost:5173
-- Database: `postgres` hostname inside Compose, not publicly exposed
-
-For non-interactive environments `make setup` defaults to plain Laravel. `make setup` is idempotent: an existing `app/artisan` is preserved; selecting another starter later does **not** replace your code. To create an app with another frontend, start a separate checkout, do **not** delete a project with user data.
-
-**Your app code is tracked by default.** Commit generated `app/`, `app/composer.lock` and `app/package-lock.json` to the new project's repository. Root and Laravel `.gitignore` rules exclude `app/.env`, PHP vendor deps, Node deps and generated assets. For a new product, use GitHub's template/fork workflow or set the new Git remote after cloning.
-
-## Daily commands
+On **Linux/macOS/WSL**:
 
 ```sh
-make help
-make up                    # App, DB, Mailpit, Vite
-make down                  # Keep persistent volumes
+make setup STARTER=svelte
+# Or directly:
+sh scripts/setup.sh svelte
+```
+
+Without a STARTER option, an interactive selection menu appears. In non-interactive execution, plain Laravel is used by default. Setup is designed to be repeatable: it preserves an existing `app/artisan` and does not silently change frontend. When creating a new application, use a fresh template checkout rather than deleting code.
+
+**Important:** the initial setup downloads the chosen official Laravel starter into `app/`, installs Composer and npm dependencies in Docker, removes Sail if present, sets up PostgreSQL and Mailpit, generates a missing APP_KEY and runs Laravel migrations. Internet access is needed for the initial downloads.
+
+## Daily development (PowerShell and Unix)
+
+```sh
+make up
+make down
 make logs
+make ps
 make artisan CMD="route:list"
 make composer CMD="require vendor/package"
 make npm CMD="run build"
 make migrate
 make test
-make backup                # Local pg_dump (NOT an offsite backup)
-make worker                # Opt-in
-make scheduler             # Opt-in
-make redis                 # Opt-in
-make destroy               # Explicit DELETE confirmation
+make worker
+make scheduler
+make redis
+make backup
+make destroy
 ```
 
-`make lint` invokes the selected app's Composer `lint:check` script, where supported. For plain Laravel, use your project's own lint/test commands as appropriate. Redis is optional: default cache, sessions and queue use PostgreSQL-backed Laravel drivers.
+For Windows without GNU Make, use `docker compose up -d`, `docker compose exec app php artisan ...`, and the PowerShell scripts in `scripts/`. For example:
+
+```powershell
+.\scripts\backup.ps1
+.\scripts\destroy.ps1
+```
+
+Local site: http://localhost:8080; Mailpit: http://localhost:8025. Node/Vite is exposed on localhost:5173. PostgreSQL and Redis do not expose host TCP ports.
+
+### Operating-system parity
+
+- GNU Make checks `OS=Windows_NT` and invokes **powershell.exe**, not `sh`, on native Windows.
+- Bash/WSL/Linux/macOS invoke `scripts/*.sh` through the host POSIX shell.
+- PowerShell scripts use `docker compose` and .NET filesystem APIs; **no Unix shell is required on the host**.
+- Linux shells inside Docker containers are normal and independent of the host PowerShell.
+- The PostgreSQL backup uses `pg_dump -Fc` inside the container followed by `docker compose cp`, avoiding PowerShell 5.1 redirection corrupting binary or text encoding.
+- Do not execute `./scripts/*.sh` directly in Windows PowerShell. Use the `.ps1` versions.
+
+### Source versioning
+
+Commit your initialized `app/` directory, `composer.lock` and `package-lock.json` into the new product's repository. The root `.gitignore` protects `app/.env`, dependencies and generated assets. For each new product, initialize from an independent copy of this template.
 
 ## Staging and production
 
-`compose.production.yaml` describes Caddy (HTTPS) → Nginx → PHP-FPM, PostgreSQL, queue worker, scheduler and persistent storage. Use **independent** Compose project names, databases, credentials and hostnames for staging and production. The build/release workflow compiles the selected starter's assets via its `npm run build`, publishes versioned PHP and Nginx images to GHCR on `v*` tags **after the application code and lockfiles are committed**. Releases are built but **not automatically promoted to a VPS**.
+`compose.production.yaml` provides a separate base topology with **Caddy TLS → Nginx → PHP-FPM**, PostgreSQL, scheduler, queue worker and persistent storage. Build releases from the selected starter: the GitHub Actions `v*` workflow compiles `npm run build` and publishes Docker images to GHCR when app source and lockfiles are committed. Deployment is an explicit operator promotion; **no staging/prod deployment has been verified yet**.
 
-Example deployment on each server:
+See `app.production.env.example` and `db.production.env.example`, configure independent secrets/domains/projects for staging and production, and use:
 
 ```sh
-cp app.production.env.example app.production.env
-cp db.production.env.example db.production.env
-# Edit these files: APP_KEY, database secrets, APP_URL, etc.
-# APP DB_PASSWORD and PostgreSQL POSTGRES_PASSWORD must match.
-export PROJECT_NAME=example-prod
-export APP_DOMAIN=example.com
-export DB_DATABASE=letsgo
-export DB_USERNAME=letsgo
-export APP_IMAGE=ghcr.io/OWNER/REPO-php:v1.0.0
-export WEB_IMAGE=ghcr.io/OWNER/REPO-web:v1.0.0
+export PROJECT_NAME=myapp-prod APP_DOMAIN=example.com DB_DATABASE=letsgo DB_USERNAME=letsgo
+export APP_IMAGE=ghcr.io/OWNER/REPO-php:v1.0.0 WEB_IMAGE=ghcr.io/OWNER/REPO-web:v1.0.0
 docker compose -f compose.production.yaml config -q
 docker compose -f compose.production.yaml pull
 docker compose -f compose.production.yaml up -d
 docker compose -f compose.production.yaml exec -T app php artisan migrate --force
 ```
 
-For staging supply different credentials/domain/PROJECT_NAME. Configure A/AAAA records and inbound 80/443 before certificate issuance, allow only authorized management access, and confirm all persistent volumes. Rollbacks of images do not roll back DB schema.
+In PowerShell, set environment variables using `$env:PROJECT_NAME='myapp-prod'`, `$env:APP_DOMAIN='example.com'`, etc., rather than Unix `export`. Production requires correctly managed secrets, firewall, offsite encrypted backups **and restore tests**, application health checks and monitoring.
 
-## Operational boundaries
-
-- Local defaults intentionally use HTTP on `127.0.0.1`; never expose development containers directly to the internet.
-- Production readiness requires **offsite encrypted backups**, tested restores, health checks, monitoring, a configured mail relay where needed and correctly rotated secrets. `make backup` only exports a local SQL dump.
-- Never place customer data in staging without appropriate anonymization.
-- Default production queue/cache uses Laravel database drivers rather than obligating Redis.
-- PHP/Svelte/Vue/React/Livewire apps all require compatible PHP dependencies; build and test your selected starter before deploying.
-- Server-rendered separate apps such as **SvelteKit and Astro should have their own templates/Compose stacks**, with their own Node servers or static builds. They are not starters inside Laravel.
+`make backup` produces a local dump only; it is not a production backup policy. `make destroy` deletes volumes after the explicit confirmation `DELETE`.
