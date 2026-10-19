@@ -14,6 +14,7 @@ db=$(sed -n 's/^DB_ENGINE=//p' .env | tr -d '"')
 https=$(sed -n 's/^HTTPS_ENABLED=//p' .env | tr -d '"')
 if [ "$db" = "postgres" ]; then docker compose up -d postgres; fi
 if [ "$db" = "mariadb" ]; then docker compose up -d mariadb; fi
+if [ "$db" = "mysql" ]; then docker compose up -d mysql; fi
 docker compose up -d app web
 
 if ! grep -Eq '^APP_KEY=.+$' app/.env; then

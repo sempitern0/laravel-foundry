@@ -143,6 +143,22 @@ services:
       retries: 18
       timeout: 5s
     networks: [internal]
+  mysql:
+    image: mysql:8.4
+    profiles: [mysql]
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-foundry}
+      MYSQL_USER: ${DB_USERNAME:-foundry}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-local-only-change-me}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-local-only-root-change-me}
+    volumes: [mysql_data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -u root -p\"$MYSQL_ROOT_PASSWORD\" -e 'SELECT 1' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
+    networks: [internal]
   redis:
     image: redis:7-alpine
     profiles: [redis]
@@ -162,6 +178,15 @@ services:
     ports: ["127.0.0.1:${DB_UI_PORT:-8081}:8081"]
     depends_on:
       postgres: {condition: service_healthy}
+    networks: [internal]
+  phpmyadmin:
+    image: phpmyadmin:5.2-apache
+    profiles: [phpmyadmin]
+    environment:
+      PMA_HOST: ${DB_SERVER:-mariadb}
+      PMA_PORT: "3306"
+      UPLOAD_LIMIT: 64M
+    ports: ["127.0.0.1:${DB_UI_PORT:-8081}:80"]
     networks: [internal]
   adminer:
     image: adminer:5
@@ -187,6 +212,7 @@ networks:
 volumes:
   pgdata:
   mariadb_data:
+  mysql_data:
   redisdata:
   node_modules:
   npm_cache:

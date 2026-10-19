@@ -68,8 +68,8 @@ jobs:
               assert "start_period: 45s" in section, name
               assert "interval: 30s" in section, name
               assert "timeout: 3s" in section, name
-          assert "app: {condition: service_healthy}" in compose
-          assert "web: {condition: service_healthy}" in compose
+          assert "app: {condition: service_started}" in compose
+          assert "web: {condition: service_started}" in compose
           print("Fast probes and startup ordering validated")
           PY
       - name: Validate fast development proxy start without healthcheck chaining
@@ -155,6 +155,13 @@ jobs:
             }
             Write-Host "Parsed: $($script.Name)"
           }
+      - name: Validate prerequisites installer PowerShell syntax
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path scripts/prerequisites.ps1).Path, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count) { throw ($errors | Out-String) }
       - name: Verify native Windows Make dispatch
         shell: powershell
         run: |

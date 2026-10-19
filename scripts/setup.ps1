@@ -10,6 +10,14 @@ function Compose {
 $root = Split-Path -Parent $PSScriptRoot
 Push-Location -LiteralPath $root
 try {
+    # Validate host prerequisites; the on-demand install remains a separate,
+    # explicitly opt-in entry point, since make cannot install itself.
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+        throw 'Docker is missing. Run .\scripts\prerequisites.ps1 -InstallMissing first.'
+    }
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Warning 'Git for Windows is not available on the host; install it to clone/version projects.'
+    }
     # Configure the infrastructure before downloading Laravel. Otherwise a
     # failed git clone prevents the wizard from ever appearing.
     if (-not (Test-Path -LiteralPath '.env')) {

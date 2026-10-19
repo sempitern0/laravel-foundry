@@ -32,12 +32,19 @@ echo "\n=== Laravel Foundry — infrastructure wizard ===\n";
 $name = ask('Project slug (Docker Compose project name)', $env['PROJECT_NAME'] ?? 'foundry');
 if (!preg_match('/^[a-z][a-z0-9_-]{0,40}$/', $name)) { fwrite(STDERR, "Invalid project slug.\n"); exit(2); }
 $label = ask('Application display name', $env['APP_LABEL'] ?? $name);
-$db = ask('Database (postgres/mariadb/sqlite)', $env['DB_ENGINE'] ?? 'postgres', ['postgres','mariadb','sqlite']);
+$db = ask('Database (postgres/mariadb/mysql/sqlite)', $env['DB_ENGINE'] ?? 'postgres', ['postgres','mariadb','mysql','sqlite']);
 $queue = ask('Queue (sync/database/redis)', $env['QUEUE_ENGINE'] ?? 'sync', ['sync','database','redis']);
 $mail = ask('Mail (mailpit/log/smtp)', $env['MAIL_ENGINE'] ?? 'mailpit', ['mailpit','log','smtp']);
-$ui = ask('Database UI (none/pgweb/adminer)', $env['DB_UI'] ?? ($db === 'postgres' ? 'pgweb' : 'none'), ['none','pgweb','adminer']);
-if ($db === 'sqlite' && $ui !== 'none') { echo "No remote database UI for SQLite; disabling.\n"; $ui='none'; }
-if ($db !== 'postgres' && $ui === 'pgweb') { echo "Pgweb supports PostgreSQL only; using Adminer.\n"; $ui='adminer'; }
+$choices = match ($db) {
+    'postgres' => ['pgweb', 'adminer', 'none'],
+    'mariadb', 'mysql' => ['phpmyadmin', 'adminer', 'none'],
+    default => ['none'],
+};
+$recommended = $db === 'postgres' ? 'pgweb'
+    : (in_array($db, ['mariadb', 'mysql'], true) ? 'phpmyadmin' : 'none');
+$previousUi = $existing ? ($env['DB_UI'] ?? $recommended) : $recommended;
+if (!in_array($previousUi, $choices, true)) $previousUi = $recommended;
+$ui = ask('Database UI ('.implode('/', $choices).')', $previousUi, $choices);
 $https = yn('Local HTTPS with Caddy?', ($env['HTTPS_ENABLED'] ?? '0') === '1');
 $domain = $https ? ask('Local domain (*.test recommended)', $env['LOCAL_DOMAIN'] ?? "$name.test") : ($env['LOCAL_DOMAIN'] ?? "$name.test");
 if ($https && !preg_match('/^[a-z0-9][a-z0-9.-]*\.test$/', $domain)) { fwrite(STDERR, "Use a .test domain, e.g. $name.test\n"); exit(2); }
@@ -56,7 +63,7 @@ $profiles[]='scheduler';
 if ($queue !== 'sync') $profiles[]='workers';
 $env = array_merge($env, [
     'PROJECT_NAME'=>$name,'APP_LABEL'=>$label,'SETUP_CONFIGURED'=>'1',
-    'DB_ENGINE'=>$db,'DB_SERVER'=>$db === 'mariadb' ? 'mariadb' : 'postgres',
+    'DB_ENGINE'=>$db,'DB_SERVER'=>in_array($db, ['mariadb', 'mysql'], true) ? $db : ($db === 'postgres' ? 'postgres' : ''),
     'QUEUE_ENGINE'=>$queue,'MAIL_ENGINE'=>$mail,'DB_UI'=>$ui,
     'HTTPS_ENABLED'=>$https?'1':'0','LOCAL_DOMAIN'=>$domain,'HTTPS_PORT'=>$httpsPort,
     'COMPOSE_PROFILES'=>implode(',', $profiles),
@@ -72,7 +79,7 @@ if ($mail === 'smtp') {
 }
 if ($db !== 'sqlite' && ($env['DB_PASSWORD'] ?? '') === 'local-only-change-me')
     $env['DB_PASSWORD']=bin2hex(random_bytes(16));
-if ($db === 'mariadb' && ($env['DB_ROOT_PASSWORD'] ?? '') === 'local-only-root-change-me')
+if (in_array($db, ['mariadb', 'mysql'], true) && ($env['DB_ROOT_PASSWORD'] ?? '') === 'local-only-root-change-me')
     $env['DB_ROOT_PASSWORD']=bin2hex(random_bytes(16));
 $lines = [];
 foreach ($env as $key=>$value) {

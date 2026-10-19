@@ -38,7 +38,18 @@
 
 ## Quick start
 
-Requirements: Docker Desktop with Linux containers (Windows) or Docker Engine (Linux), **Compose v2**, Git, and GNU Make. PowerShell users can invoke scripts directly without Make. PHP, Node, Composer, npm and the database run inside containers.
+Requirements: Docker Desktop with Linux containers (Windows) or Docker Engine (Linux), **Compose v2**, Git, and GNU Make for the Makefile shortcuts. PHP, Node, Composer, npm and database engines run inside containers.
+
+**Windows prerequisites:** `make setup` cannot install GNU Make because it is itself invoked by Make. Before cloning/running Make on a new machine, use the native PowerShell helper:
+
+```powershell
+.\scripts\prerequisites.ps1
+.\scripts\prerequisites.ps1 -InstallMissing
+```
+
+The first command only audits prerequisites; the second **asks for consent** before installing missing Git/Docker Desktop with WinGet and GNU Make through an available supported package manager (Chocolatey, Scoop, or a verified WinGet package). If no supported Make package is discoverable, the helper provides a manual installation path; it does **not** silently install arbitrary package managers. Docker Desktop/WSL2 may need an administrator, a reboot and first-run initialization. Start Docker Desktop before running setup.
+
+**No Make required:** after Docker Desktop is working, you may use `.\scripts\setup.ps1 -Starter svelte` directly from PowerShell. The project does not silently alter the host system during `make setup`.
 
 ```powershell
 git clone https://github.com/sempitern0/laravel-letsgo.git my-laravel-app
@@ -183,3 +194,7 @@ The **runtime setup** uses `scripts/configure-app.php` as its single Laravel env
 
 The repository icon is an original geometric mark evoking modular building blocks. It is not the official Laravel or Docker brand mark.
 
+
+### MySQL and MariaDB setup
+
+In `make setup`, select `mysql` or `mariadb`, then choose `phpmyadmin` as your database UI (default for new MySQL/MariaDB projects) or `adminer`. The UI is reachable on the host at `http://localhost:8081`; no database port is exposed to the LAN. Run `make reset-project` with explicit confirmation when intentionally deleting a database and application to start fresh; changing engines with existing data requires a deliberate migration, not just editing `.env`.

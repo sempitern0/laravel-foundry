@@ -17,9 +17,9 @@ $queue=$env['QUEUE_ENGINE']??'sync';
 $values=[
     'APP_NAME'=>$env['APP_LABEL']??'Laravel',
     'APP_URL'=>$https?'https://'.$env['LOCAL_DOMAIN'].(($env['HTTPS_PORT']??'443')==='443'?'':':'.$env['HTTPS_PORT']):'http://localhost:'.($env['HTTP_PORT']??'8080'),
-    'DB_CONNECTION'=> $db==='postgres'?'pgsql':($db==='mariadb'?'mysql':'sqlite'),
-    'DB_HOST'=> $db==='mariadb'?'mariadb':'postgres',
-    'DB_PORT'=> $db==='mariadb'?'3306':'5432',
+    'DB_CONNECTION'=> $db==='postgres'?'pgsql':(in_array($db, ['mariadb','mysql'], true)?'mysql':'sqlite'),
+    'DB_HOST'=> in_array($db, ['mariadb','mysql'], true)?$db:'postgres',
+    'DB_PORT'=> in_array($db, ['mariadb','mysql'], true)?'3306':'5432',
     'DB_DATABASE'=> $db==='sqlite'?'/var/www/html/database/database.sqlite':($env['DB_DATABASE']??'letsgo'),
     'DB_USERNAME'=>$env['DB_USERNAME']??'letsgo',
     'DB_PASSWORD'=>$env['DB_PASSWORD']??'',

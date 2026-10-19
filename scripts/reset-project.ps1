@@ -32,7 +32,7 @@ try {
         throw 'Cancelled without removing the project.'
     }
 
-    $profiles = @('dev','workers','scheduler','redis','https','pgweb','adminer','mariadb','postgres','mailpit','tools')
+    $profiles = @('dev','workers','scheduler','redis','https','pgweb','adminer','mariadb','mysql','phpmyadmin','postgres','mailpit','tools')
     $args = @()
     foreach ($profile in $profiles) { $args += @('--profile', $profile) }
     $args += @('down', '--volumes', '--remove-orphans')

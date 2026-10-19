@@ -21,7 +21,7 @@ IFS= read -r answer || exit 2
 docker compose \
   --profile dev --profile workers --profile scheduler \
   --profile redis --profile https --profile pgweb --profile adminer \
-  --profile mariadb --profile postgres --profile mailpit --profile tools \
+  --profile mariadb --profile mysql --profile phpmyadmin --profile postgres --profile mailpit --profile tools \
   down --volumes --remove-orphans
 
 for path in app .env certs/caddy-local-root.crt caddy-local-root.crt; do
