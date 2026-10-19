@@ -1,11 +1,12 @@
 # Laravel Let's Go
 
-Self-hosted Laravel 13 + Svelte 5 + Inertia 3 development template. **No Sail, Herd, paid local databases or platform services required.**
+Docker-first, self-hostable Laravel 13 + Svelte 5 + Inertia 3 template. **No Laravel Sail, Herd, subscription or paid local database.**
 
-## Requirements
-Docker Engine with Compose v2, Git, Make and a POSIX shell (WSL2 recommended on Windows). PHP, Composer, Node and PostgreSQL run in containers.
+## Prerequisites
 
-## Start in three commands
+Docker Engine, Docker Compose v2, Git, Make, a POSIX shell. On Windows, use WSL2 for the development workflow. No host PHP, Composer, PostgreSQL or Node installation required.
+
+## First run
 
 ```sh
 git clone https://github.com/sempitern0/laravel-letsgo.git my-app
@@ -13,45 +14,67 @@ cd my-app
 make setup
 ```
 
-Open **http://localhost:8080**. Mailpit is at **http://localhost:8025**. Vite HMR uses localhost port 5173. Setup downloads the official Laravel Svelte starter into `app/`, removes its Sail dev dependency, generates an application key, configures local PostgreSQL, installs npm packages and runs migrations. First run needs internet access.
+Open http://localhost:8080; Mailpit is http://localhost:8025. Vite HMR uses 5173.
 
-**Important:** `app/` is excluded by this *infrastructure template's* .gitignore. To turn a bootstrapped instance into your actual application repository, remove `app/` from .gitignore and commit the generated Laravel source, `composer.lock` and `package-lock.json`, but never `app/.env`. Otherwise production CI will not be reproducible.
+The bootstrap downloads the official Laravel/Svelte starter in `app/`, removes its Sail development dependency, configures PostgreSQL and Mailpit, generates the application key, migrates, and starts Vite. This requires Internet on the first run. It refuses to overwrite a nonempty application directory.
 
-## Daily commands
+**IMPORTANT FOR A REAL PROJECT:** this infrastructure repository ignores `app/` by default. After the first bootstrap, remove the `app/` entry from the root `.gitignore`, and version your Laravel app, `composer.lock` and `package-lock.json`, while keeping `app/.env`, `vendor/`, `node_modules/` and secrets ignored. Otherwise CI cannot compile and release your application. Consider generating a fresh project repo rather than pushing your application code to this template repository.
+
+## Daily operations
+
 ```sh
-make up
-make down
+make help
+make up                   # PHP, Nginx, PostgreSQL, Mailpit and Vite
+make down                 # Keep database volumes
 make logs
 make artisan CMD="route:list"
 make composer CMD="require vendor/package"
 make npm CMD="run check"
 make migrate
 make test
-make backup
-make worker
-make scheduler
-make redis
+make lint
+make backup               # Local SQL dump only
+make redis                # Opt-in Redis, not necessary by default
+make worker               # Opt-in queue worker
+make scheduler            # Opt-in schedule worker
+make destroy              # Destructive, requires typing DELETE
 ```
 
-`make destroy` irreversibly deletes Docker volumes with explicit confirmation. `make backup` is a **local plain SQL dump**, not an offsite backup or tested restore strategy.
+Containers run locally with HTTP bound only to loopback. PostgreSQL and Redis do not publish a TCP port to the host. Access PostgreSQL through `docker compose exec postgres psql -U letsgo`.
 
-## Architecture
-Local: Nginx → PHP-FPM Laravel, Node Vite, PostgreSQL, Mailpit. Redis, queue worker and scheduler are opt-in. No database ports are exposed; connect from inside Docker with `docker compose exec postgres psql -U letsgo`. In production: Caddy (automated TLS) → Nginx → PHP-FPM, PostgreSQL, queue worker and scheduler, persistent storage.
+## Production and staging
 
-For production set `APP_IMAGE`, `WEB_IMAGE`, `APP_DOMAIN`, `DB_DATABASE`, `DB_USERNAME`, then supply non-committed `app.production.env` and `db.production.env`. Use:
+The `compose.production.yaml` manifest defines **Caddy → Nginx → PHP-FPM**, PostgreSQL, queue worker, scheduler, isolated internal network, persistent storage and automated public HTTPS. Deploy staging and production as *separate Compose projects* using independent volumes, database credentials, domains, and environment files. Never share production data with staging.
+
+After the app source and both lock files have been committed, a tag `v*` triggers the release workflow. It compiles Laravel/Svelte, builds immutable PHP and Nginx release images and pushes them to GHCR, using your repo's GitHub token. If packages are private, authenticate on the server before pulling.
+
+On each target VPS:
 ```sh
+cp app.production.env.example app.production.env
+cp db.production.env.example db.production.env
+# Change ALL passwords, APP_KEY, APP_URL and related values.
+# The app DB_PASSWORD must equal db POSTGRES_PASSWORD.
+# Point APP_DOMAIN DNS to this server and allow TCP 80/443.
+export PROJECT_NAME=myapp-prod
+export APP_DOMAIN=example.com
+export DB_DATABASE=letsgo
+export DB_USERNAME=letsgo
+export APP_IMAGE=ghcr.io/OWNER/REPO-php:v1.0.0
+export WEB_IMAGE=ghcr.io/OWNER/REPO-web:v1.0.0
+docker compose -f compose.production.yaml config -q
 docker compose -f compose.production.yaml pull
 docker compose -f compose.production.yaml up -d
 docker compose -f compose.production.yaml exec -T app php artisan migrate --force
 ```
 
-Production **requires published images containing the same built Laravel release and web assets**, plus real secrets, TLS DNS records, external backups and deployment validation. The template provides a production topology, not a fully configured release pipeline.
+For staging use a different project name/domain/secrets and optionally different image tags. The release workflow **builds and publishes** images, but deliberately does **not SSH to your VPS** or automatically migrate your customer database; promotion is an explicit operator action.
 
-### Known limits and operational rules
-- Local HTTP is intentional; production HTTPS is handled by Caddy. Do not expose a development environment to the Internet.
-- The generated Laravel app can use database-backed sessions, cache and queues out of the box. Redis is opt-in.
-- Separate staging/production Compose projects, databases, secrets and domains. Never reuse production data in staging.
-- Reserve migrations with incompatible schema changes for explicitly coordinated releases; image rollback does not undo database changes.
-- Restrict SSH access, protect credentials, configure offsite backups and verify restores before accepting customer data.
-- The public `/healthz` URL checks only Nginx; use application-level checks before advancing releases.
-- First setup is for empty `app/`; it never overwrites an existing Laravel project.
+### Production requirements
+
+- Install real secrets outside Git and generate APP_KEY with `php artisan key:generate --show` in a controlled environment.
+- Ensure the server's DNS resolves, TLS can be issued and that the network firewall only exposes 80/443 and authorized management access.
+- Configure encrypted **offsite** backups of database and storage, retention and tested restoration. `make backup` is local-only and insufficient for production.
+- Use a transactional SMTP relay when required. Do not ship staging/demo email configuration to customer systems.
+- Health checks, smoke tests and reversible application changes should precede promotion. Image rollback cannot roll back incompatible database migrations.
+- Redis is intentionally optional for development; production defaults to database-backed cache and queue to reduce memory and services.
+- Persistent storage is shared by web tasks through the PHP volume; for downloadable files requiring direct Nginx delivery, configure a dedicated secure object-storage or public-files mounting strategy.
