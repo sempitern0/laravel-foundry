@@ -1,9 +1,24 @@
 name: ${PROJECT_NAME:-letsgo}
-x-app: &app
+# PHP-FPM runtime deliberately does not have Composer or Node.
+x-runtime: &runtime
   build:
     context: .
     dockerfile: docker/php/Dockerfile
     target: development
+  user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
+  working_dir: /var/www/html
+  volumes:
+    - ./app:/var/www/html
+  environment:
+    APP_ENV: local
+  networks: [internal]
+# Laravel Composer hooks may invoke npm, so the disposable tooling target
+# contains PHP (matching runtime extensions), Composer and Node/npm.
+x-tooling: &tooling
+  build:
+    context: .
+    dockerfile: docker/php/Dockerfile
+    target: tooling
   user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
   working_dir: /var/www/html
   volumes:
@@ -24,11 +39,15 @@ x-app: &app
     npm_config_audit: "false"
     npm_config_fund: "false"
     npm_config_progress: "false"
-  networks: [internal]
+  networks: [internal, devtools]
 services:
   app:
-    <<: *app
+    <<: *runtime
     command: php-fpm
+  composer:
+    <<: *tooling
+    profiles: [tools]
+    command: ["composer", "--version"]
     healthcheck:
       test: ["CMD", "php-fpm", "-t"]
       interval: 20s
@@ -80,7 +99,7 @@ services:
       - npm_cache:/tmp/npm-cache
       - ./scripts/npm-ensure.sh:/opt/letsgo/npm-ensure.sh:ro
     ports: ["127.0.0.1:${VITE_PORT:-5173}:5173"]
-    networks: [internal]
+    networks: [devtools]
   postgres:
     image: postgres:17-alpine
     profiles: [postgres]
@@ -138,17 +157,19 @@ services:
     ports: ["127.0.0.1:${DB_UI_PORT:-8081}:8080"]
     networks: [internal]
   worker:
-    <<: *app
+    <<: *runtime
     profiles: [workers]
     restart: unless-stopped
     command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
   scheduler:
-    <<: *app
+    <<: *runtime
     profiles: [scheduler]
     restart: unless-stopped
     command: php artisan schedule:work
 networks:
   internal:
+  # Downloads require egress. Neither network is a full security boundary.
+  devtools:
 volumes:
   pgdata:
   mariadb_data:

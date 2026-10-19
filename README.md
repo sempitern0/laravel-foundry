@@ -6,7 +6,7 @@
 
 - Docker Desktop with Linux containers + Compose v2 on Windows, or Docker Engine + Compose v2 on Linux.
 - Git and GNU Make if you want `make` shortcuts. **PowerShell users can also run the scripts directly without Make.**
-- No host PHP, Composer, Node or PostgreSQL. The development PHP image includes Node/npm because the official Laravel starter's Composer hooks can invoke npm during `artisan install:features`. Production PHP images do not include Node; Vite remains a separate dev service.
+- No host PHP, Composer, Node or PostgreSQL. A disposable Composer toolbox provides PHP, Composer and Node/npm for Laravel starter hooks. The PHP-FPM runtime excludes Composer/Node/npm. Vite runs in a separate Node service.
 - On Linux set `DEV_UID` and `DEV_GID` in root `.env` to match your user when necessary. Windows uses Docker Desktop's bind mount handling.
 
 ## Initialize a Laravel project
@@ -158,3 +158,9 @@ docker compose -f compose.production.yaml exec -T app php artisan migrate --forc
 In PowerShell, set environment variables using `$env:PROJECT_NAME='myapp-prod'`, `$env:APP_DOMAIN='example.com'`, etc., rather than Unix `export`. Production requires correctly managed secrets, firewall, offsite encrypted backups **and restore tests**, application health checks and monitoring.
 
 `make backup` produces a local dump only; it is not a production backup policy. `make destroy` deletes volumes after the explicit confirmation `DELETE`.
+
+## Composer/Node toolbox and networks
+
+The long-running PHP-FPM runtime and workers exclude Composer and Node. `docker compose run --rm --no-deps composer composer install` starts an on-demand toolbox with the same PHP extensions as the runtime, plus Node/npm for Laravel starter Composer hooks. `make composer CMD="require vendor/package"` uses the toolbox; `make npm CMD="install"` uses the separate Node container. Vite remains a separate frontend process.
+
+The Composer toolbox joins the application network only when a Laravel hook needs to reach a database, and also joins the egress-capable `devtools` network. The Node service uses `devtools` for dependency downloads. This arrangement improves process separation and reduces the runtime toolchain surface, but **Docker networks do not provide strict isolation**, especially when the toolbox mounts project source. Neither Composer nor npm should be run on untrusted packages. It does not materially speed up downloads; named volumes and caches remain responsible for the speed improvement.

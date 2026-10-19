@@ -15,11 +15,11 @@ try {
     if (-not (Test-Path -LiteralPath '.env')) {
         Copy-Item -LiteralPath '.env.example' -Destination '.env'
     }
-    Compose -Cmd @('build','app')
-    Compose -Cmd @('run','--rm','--interactive','--no-deps','app','php','/opt/letsgo/wizard.php')
+    Compose -Cmd @('build','composer')
+    Compose -Cmd @('run','--rm','--interactive','--no-deps','composer','php','/opt/letsgo/wizard.php')
     & (Join-Path $PSScriptRoot 'bootstrap.ps1') -Starter $Starter
     if (-not $?) { throw 'Bootstrap failed' }
-    Compose -Cmd @('run','--rm','--no-deps','app','php','/opt/letsgo/configure-app.php')
+    Compose -Cmd @('run','--rm','--no-deps','composer','php','/opt/letsgo/configure-app.php')
     $config=@{}
     foreach ($line in Get-Content '.env') {
         if ($line -match '^([A-Z][A-Z0-9_]*)=(.*)$') { $config[$Matches[1]]=$Matches[2].Trim('"') }

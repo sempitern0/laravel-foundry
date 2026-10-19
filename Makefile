@@ -40,7 +40,7 @@ up-detached:
 	$(DC) up -d
 
 build:
-	$(DC) build app
+	$(DC) build app composer
 
 rebuild:
 	$(DC) --profile dev up -d --build
@@ -65,7 +65,7 @@ artisan:
 	$(DC) exec app php artisan $(CMD)
 
 composer:
-	$(DC) exec app composer $(CMD)
+	$(DC) run --rm --no-deps composer composer $(CMD)
 
 npm:
 	$(DC) --profile dev run --rm --no-deps --entrypoint npm node $(CMD)
