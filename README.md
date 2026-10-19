@@ -36,6 +36,12 @@
 | Host support | Native PowerShell, Linux, macOS, WSL2 |
 | Delivery | Docker Compose; optional image-release workflow via GHCR |
 
+## AI coding agents
+
+[**AGENTS.md**](AGENTS.md) is the repository's framework-agnostic development guide for AI coding assistants. It covers initial repository discovery, Laravel/PHP and PSR conventions, Eloquent models and migrations, authorization, security, queue jobs, Docker tooling, testing, and frontend rules for **Blade, Livewire, Inertia with Svelte/Vue/React** and other installed tools. It avoids imposing a frontend or unnecessary architecture.
+
+The guide is stored at the **template root**, so an assistant working on Laravel Foundry follows its infrastructure standards. If you create a separate *application repository* from `app/`, include an adapted copy of `AGENTS.md` there so the project's own agents retain the relevant Laravel standards. Review its Docker command assumptions and any project-specific rules before copying.
+
 ## Quick start
 
 Requirements: Docker Desktop with Linux containers (Windows) or Docker Engine (Linux), **Compose v2**, Git, and GNU Make for the Makefile shortcuts. PHP, Node, Composer, npm and database engines run inside containers.
