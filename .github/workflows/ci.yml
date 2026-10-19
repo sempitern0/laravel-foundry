@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate POSIX scripts
-        run: sh -n scripts/bootstrap.sh scripts/configure-app.sh scripts/setup.sh scripts/backup.sh scripts/destroy.sh
+        run: sh -n scripts/bootstrap.sh scripts/configure-app.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/destroy.sh
       - name: Enforce Sail-free generated applications
         run: |
           if [ -f app/composer.json ] && grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
@@ -27,7 +27,11 @@ jobs:
       - name: Build and smoke-test PHP development toolchain
         run: |
           docker compose build app
-          docker compose run --rm --no-deps app sh -c 'php -v && composer --version && node --version && npm --version'
+          docker compose run --rm --no-deps --user 0:0 app sh -ec 'chown "$DEV_UID:$DEV_GID" /var/www/html/node_modules /tmp/npm-cache /tmp/composer'
+          docker compose run --rm --no-deps app sh -ec 'php -v && composer --version && node --version && npm --version && touch /var/www/html/node_modules/.cache-write-test && touch /tmp/npm-cache/.cache-write-test && touch /tmp/composer/.cache-write-test'
+      - name: Verify shared dependencies and matching Linux libc
+        run: |
+          docker compose --profile dev run --rm --no-deps --entrypoint sh node -ec 'node --version && npm --version && test -f /var/www/html/node_modules/.cache-write-test && test -f /tmp/npm-cache/.cache-write-test'
   powershell-scripts:
     runs-on: windows-latest
     steps:

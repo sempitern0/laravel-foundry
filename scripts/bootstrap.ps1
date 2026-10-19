@@ -67,6 +67,7 @@ try {
         # A previous setup might have failed in Composer's post-update-cmd
         # AFTER vendor/autoload.php was written. Always rebuild/check tools.
         Invoke-Compose -Arguments @('build', 'app')
+        Invoke-Compose -Arguments @('run', '--rm', '--no-deps', '--user', '0:0', 'app', 'sh', '-ec', 'chown "$DEV_UID:$DEV_GID" /var/www/html/node_modules /tmp/npm-cache /tmp/composer')
         Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'sh', '-c', 'node --version && npm --version')
 
         if ((Get-Content -LiteralPath 'app/composer.json' -Raw) -match '"laravel/sail"\s*:') {
@@ -101,6 +102,7 @@ try {
 
     Write-Host "Installing Laravel starter $Starter from $repository ($revision)"
     Invoke-Compose -Arguments @('build', 'app')
+    Invoke-Compose -Arguments @('run', '--rm', '--no-deps', '--user', '0:0', 'app', 'sh', '-ec', 'chown "$DEV_UID:$DEV_GID" /var/www/html/node_modules /tmp/npm-cache /tmp/composer')
     Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'sh', '-c', 'node --version && npm --version')
     Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'git', 'clone', '--depth', '1', '--branch', $revision, "https://github.com/$repository.git", '/var/www/html')
     Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'rm', '-rf', '/var/www/html/.git')

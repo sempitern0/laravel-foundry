@@ -14,7 +14,7 @@ endif
 .DEFAULT_GOAL := help
 DC := docker compose
 STARTER ?=
-.PHONY: help setup up down restart logs ps shell artisan composer npm migrate test lint worker scheduler redis destroy config backup
+.PHONY: help setup up build rebuild down restart logs ps shell artisan composer npm migrate test lint worker scheduler redis destroy config backup
 
 help:
 	@echo "Laravel Let's Go - Docker-based, frontend-neutral Laravel template"
@@ -24,7 +24,7 @@ help:
 	@echo "  make setup STARTER=react     React + Inertia"
 	@echo "  make setup STARTER=livewire  Livewire"
 	@echo "  make setup STARTER=laravel   Plain Laravel"
-	@echo "  make up / down / ps / logs   Container management"
+	@echo "  make up / down / ps / logs   Container management\n\t@echo "  make rebuild                 Rebuild PHP image after Dockerfile changes""
 	@echo "  make artisan CMD='route:list' / composer CMD='require ...'"
 	@echo "  make npm CMD='run build' / migrate / test / lint"
 	@echo "  make worker / scheduler / redis / backup / destroy"
@@ -33,6 +33,12 @@ setup:
 	$(SETUP_SCRIPT) $(if $(strip $(STARTER)),$(if $(filter Windows_NT,$(OS)),-Starter "$(STARTER)","$(STARTER)"),)
 
 up:
+	$(DC) --profile dev up -d
+
+build:
+	$(DC) build app
+
+rebuild:
 	$(DC) --profile dev up -d --build
 
 down:

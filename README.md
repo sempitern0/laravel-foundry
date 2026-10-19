@@ -51,10 +51,25 @@ The official Svelte, React, Vue and Livewire starters currently declare `laravel
 
 This is a **setup-time cleanup and CI guard, not a Composer `post-install-cmd` hook**: Composer hooks that modify their own dependency graph can cause recursive or inconsistent installs. If you add Sail manually later, CI will flag it and `make setup` can reconcile your application.
 
+## npm installation performance (especially on Windows)
+
+The local app source is still mounted from `./app`, but **`node_modules` now lives in a named Docker volume** shared between the development PHP container (which runs Laravel's Composer hooks) and the Node/Vite container. The npm download cache is persisted in another volume; Composer's download cache is also persisted. This avoids writing tens of thousands of npm files to a slow NTFS bind mount.
+
+The Node and PHP development containers both use **Node.js 22 on Debian/glibc**. This matters for platform-specific binaries (Vite/Rollup, Tailwind) that could break when sharing `node_modules` between Alpine/musl and Debian/glibc.
+
+The `setup` command detects whether Composer has already installed an intact dependency tree and skips a redundant second `npm install`. If it has not, it installs with `--prefer-offline --no-audit --no-fund`. A subsequent `make up` reuses both the images and named volumes; `make rebuild` is available for Dockerfile changes.
+
+**Changing npm packages:** Run `make npm CMD="install"` to install/update dependencies, or `make npm CMD="ci"` to reinstall exactly from the committed lockfile. No host npm required.
+
+**Existing checkout:** Docker will start using fresh named volumes after you update this branch; a previous `app/node_modules` folder on Windows may remain on disk but is shadowed inside containers. Once the new setup works, that obsolete host folder can be removed manually to reclaim space. Do not delete `app/`, `app/.env`, or your database volumes.
+
+**Windows performance tip:** For further acceleration, put a large repository under the WSL2 Linux filesystem rather than `C:\\Users\\...` and open it with your editor's WSL integration. Moving the project is optional.
+
 ## Daily development (PowerShell and Unix)
 
 ```sh
 make up
+make rebuild              # Only after changing the Dockerfile/images
 make down
 make logs
 make ps

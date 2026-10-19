@@ -18,7 +18,7 @@ try {
     & (Join-Path $PSScriptRoot 'bootstrap.ps1') -Starter $Starter
     & (Join-Path $PSScriptRoot 'configure-app.ps1')
 
-    Invoke-Compose -Arguments @('up', '-d', '--build', 'postgres', 'mailpit', 'app', 'web')
+    Invoke-Compose -Arguments @('up', '-d', 'postgres', 'mailpit', 'app', 'web')
 
     $appEnv = Get-Content -LiteralPath 'app/.env'
     if (-not ($appEnv | Where-Object { $_ -match '^APP_KEY=.+$' })) {
@@ -26,7 +26,7 @@ try {
     }
 
     Invoke-Compose -Arguments @('exec', '-T', 'app', 'php', 'artisan', 'migrate', '--force')
-    Invoke-Compose -Arguments @('--profile', 'dev', 'run', '--rm', '--no-deps', '--entrypoint', 'npm', 'node', 'install')
+    Invoke-Compose -Arguments @('--profile', 'dev', 'run', '--rm', '--no-deps', '--entrypoint', 'sh', 'node', '/opt/letsgo/npm-ensure.sh')
     Invoke-Compose -Arguments @('--profile', 'dev', 'up', '-d', 'node')
 
     $settings = @{}

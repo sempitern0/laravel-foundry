@@ -8,10 +8,22 @@ x-app: &app
   working_dir: /var/www/html
   volumes:
     - ./app:/var/www/html
+    # Avoid thousands of small filesystem writes through a Windows bind mount.
+    # Both PHP (Composer hooks) and the Vite service use the same Linux deps.
+    - node_modules:/var/www/html/node_modules
+    - npm_cache:/tmp/npm-cache
+    - composer_home:/tmp/composer
   environment:
     APP_ENV: local
     HOME: /tmp
     COMPOSER_HOME: /tmp/composer
+    DEV_UID: ${DEV_UID:-1000}
+    DEV_GID: ${DEV_GID:-1000}
+    npm_config_cache: /tmp/npm-cache
+    npm_config_prefer_offline: "true"
+    npm_config_audit: "false"
+    npm_config_fund: "false"
+    npm_config_progress: "false"
   depends_on:
     postgres:
       condition: service_healthy
@@ -29,14 +41,23 @@ services:
     depends_on: [app]
     networks: [internal]
   node:
-    image: node:22-alpine
+    # Match PHP's Debian/glibc environment for native npm dependencies.
+    image: node:22-bookworm-slim
     user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
     working_dir: /var/www/html
     command: sh -c "npm run dev -- --host 0.0.0.0"
     environment:
       HOME: /tmp
       npm_config_cache: /tmp/npm-cache
-    volumes: [./app:/var/www/html]
+      npm_config_prefer_offline: "true"
+      npm_config_audit: "false"
+      npm_config_fund: "false"
+      npm_config_progress: "false"
+    volumes:
+      - ./app:/var/www/html
+      - node_modules:/var/www/html/node_modules
+      - npm_cache:/tmp/npm-cache
+      - ./scripts/npm-ensure.sh:/opt/letsgo/npm-ensure.sh:ro
     ports: ["127.0.0.1:${VITE_PORT:-5173}:5173"]
     profiles: [dev]
     networks: [internal]
@@ -78,3 +99,6 @@ networks:
 volumes:
   pgdata:
   redisdata:
+  node_modules:
+  npm_cache:
+  composer_home:
