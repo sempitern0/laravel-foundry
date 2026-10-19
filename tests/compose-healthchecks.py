@@ -22,7 +22,11 @@ for host_values in (False, True):
             ['docker', 'compose', '--env-file', '/dev/null', '-f', filename,
              '--profile', '*', 'config', '--format', 'json'],
             cwd=ROOT, env=env, capture_output=True, text=True, check=True)
-        command = json.loads(result.stdout)['services'][service]['healthcheck']['test'][1]
+        services = json.loads(result.stdout)['services']
+        if filename == 'compose.yaml':
+            for app_service in ('app', 'composer', 'node', 'worker', 'scheduler'):
+                assert 'APP_ENV' not in (services[app_service].get('environment') or {}), app_service
+        command = services[service]['healthcheck']['test'][1]
         assert 'host-value-must-not-replace-container-value' not in command
         for name in variables:
             assert '$' + name in command, (filename, name)
