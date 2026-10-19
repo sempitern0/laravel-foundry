@@ -99,8 +99,7 @@ echo "Installing Laravel starter $starter from $repository ($revision)"
 docker compose build app
 docker compose run --rm --no-deps --user 0:0 app sh -ec 'chown "$DEV_UID:$DEV_GID" /var/www/html/node_modules /tmp/npm-cache /tmp/composer'
 docker compose run --rm --no-deps app sh -c 'node --version && npm --version'
-docker compose run --rm --no-deps app git clone --depth 1 --branch "$revision" "https://github.com/$repository.git" /var/www/html
-docker compose run --rm --no-deps app rm -rf /var/www/html/.git
+docker compose run --rm --no-deps app sh /opt/letsgo/checkout-starter.sh "$revision" "https://github.com/$repository.git"
 # Fresh official starter repositories have no composer.lock. Drop Sail from
 # composer.json before dependency resolution so it is never downloaded or locked.
 if grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then

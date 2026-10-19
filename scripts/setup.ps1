@@ -10,9 +10,15 @@ function Compose {
 $root = Split-Path -Parent $PSScriptRoot
 Push-Location -LiteralPath $root
 try {
+    # Configure the infrastructure before downloading Laravel. Otherwise a
+    # failed git clone prevents the wizard from ever appearing.
+    if (-not (Test-Path -LiteralPath '.env')) {
+        Copy-Item -LiteralPath '.env.example' -Destination '.env'
+    }
+    Compose -Cmd @('build','app')
+    Compose -Cmd @('run','--rm','--interactive','--no-deps','app','php','/opt/letsgo/wizard.php')
     & (Join-Path $PSScriptRoot 'bootstrap.ps1') -Starter $Starter
     if (-not $?) { throw 'Bootstrap failed' }
-    Compose -Cmd @('run','--rm','--no-deps','app','php','/opt/letsgo/wizard.php')
     Compose -Cmd @('run','--rm','--no-deps','app','php','/opt/letsgo/configure-app.php')
     $config=@{}
     foreach ($line in Get-Content '.env') {

@@ -11,7 +11,11 @@ function ask(string $label, string $default, ?array $allowed = null): string {
     while (true) {
         fwrite(STDOUT, "$label [$default]: ");
         $line = fgets(STDIN);
-        $value = $line === false ? $default : (trim($line) ?: $default);
+        if ($line === false) {
+            fwrite(STDERR, "Wizard input is not connected to the terminal. Run setup interactively.\n");
+            exit(2);
+        }
+        $value = trim($line) ?: $default;
         if ($allowed === null || in_array($value, $allowed, true)) return $value;
         fwrite(STDERR, "Valid options: ".implode(', ', $allowed)."\n");
     }

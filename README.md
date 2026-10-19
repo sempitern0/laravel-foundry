@@ -43,7 +43,7 @@ Without a STARTER option, an interactive selection menu appears. In non-interact
 
 ## Interactive infrastructure configuration
 
-After selecting a Laravel starter, one PHP wizard (running **inside Docker**, so both PowerShell and Unix use identical questions) asks for the application/container project name, PostgreSQL/MariaDB/SQLite, queue (sync/database/Redis), mail (Mailpit/log/custom SMTP), optional Pgweb/Adminer, and custom `.test` HTTPS hostname. All these options are written to the ignored root `.env` as Compose profiles and propagated to `app/.env`.
+Before installing the Laravel starter, one PHP wizard (running **inside Docker**, so both PowerShell and Unix use identical questions) asks for the application/container project name, PostgreSQL/MariaDB/SQLite, queue (sync/database/Redis), mail (Mailpit/log/custom SMTP), optional Pgweb/Adminer, and custom `.test` HTTPS hostname. All these options are written to the ignored root `.env` as Compose profiles and propagated to `app/.env`.
 
 - **Database:** PostgreSQL is the default; MariaDB and SQLite are optional. Existing database volumes are not destroyed automatically when changing engines; migrate or back up data before changing engines.
 - **Queues:** sync requires no worker; database and Redis enable the worker automatically. Redis starts only when chosen.
@@ -64,6 +64,8 @@ Windows: edit `C:\\Windows\\System32\\drivers\\etc\\hosts` as Administrator. Lin
 `http://localhost:8080/healthz` should return `ok`. If Laravel routes fail, run `docker compose logs web app` and `docker compose exec app php artisan route:list` before changing domains.
 
 ### Recovering from a partially completed setup
+
+If a fresh setup stopped with `fatal: destination path '/var/www/html' already exists and is not an empty directory`, the cause was the separate Docker `node_modules` volume mounted under the otherwise empty `app/` directory. The corrected bootstrap clones to a disposable path inside the PHP container and copies only the source into `app/`; there is **no reason to delete `app/` or Docker volumes**. The infrastructure wizard now runs before starter download, and fails explicitly if its input is disconnected instead of selecting defaults silently.
 
 If Composer stopped with `artisan install:features` / `npm: not found`, **do not delete `app/` or reset database volumes**. Update this template branch and rerun `make setup STARTER=svelte` (or the original starter). Setup now rebuilds the PHP dev image and detects incomplete bootstrap via `app/.letsgo-starter`; it reruns Composer and explicitly replays the feature-install hook when needed, even if `vendor/autoload.php` already exists.
 

@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate POSIX scripts
-        run: sh -n scripts/bootstrap.sh scripts/configure-app.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/destroy.sh
+        run: sh -n scripts/bootstrap.sh scripts/checkout-starter.sh scripts/configure-app.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/destroy.sh
       - name: Enforce Sail-free generated applications
         run: |
           if [ -f app/composer.json ] && grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
@@ -29,6 +29,18 @@ jobs:
             exit 1
           fi
           git check-ignore app/artisan
+      - name: Ensure the wizard precedes starter checkout
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for script, wizard, bootstrap in [
+              ('scripts/setup.sh', 'wizard.php', 'bootstrap.sh'),
+              ('scripts/setup.ps1', 'wizard.php', 'bootstrap.ps1'),
+          ]:
+              contents = Path(script).read_text()
+              assert contents.index(wizard) < contents.index(bootstrap), script
+          print('Wizard runs before bootstrap in both platforms')
+          PY
       - name: Validate shared PHP wizard
         run: |
           php -l scripts/wizard.php
@@ -40,6 +52,22 @@ jobs:
           docker compose build app
           docker compose run --rm --no-deps --user 0:0 app sh -ec 'chown "$DEV_UID:$DEV_GID" /var/www/html/node_modules /tmp/npm-cache /tmp/composer'
           docker compose run --rm --no-deps app sh -ec 'php -v && composer --version && node --version && npm --version && touch /var/www/html/node_modules/.cache-write-test && touch /tmp/npm-cache/.cache-write-test && touch /tmp/composer/.cache-write-test'
+      - name: Test starter checkout with the mounted node_modules directory
+        run: |
+          docker compose run --rm --no-deps --entrypoint sh app -ec '
+            repo=$(mktemp -d /tmp/letsgo-repo.XXXXXX)
+            git init -q -b main "$repo"
+            git -C "$repo" config user.name CI
+            git -C "$repo" config user.email ci@example.invalid
+            printf "#!/usr/bin/env php\n" > "$repo/artisan"
+            printf "{}\n" > "$repo/composer.json"
+            git -C "$repo" add .
+            git -C "$repo" commit -qm fixture
+            test -d /var/www/html/node_modules
+            sh /opt/letsgo/checkout-starter.sh main "$repo"
+            test -f /var/www/html/artisan
+            test -d /var/www/html/node_modules
+          '
       - name: Verify shared dependencies and matching Linux libc
         run: |
           docker compose --profile dev run --rm --no-deps --entrypoint sh node -ec 'node --version && npm --version && test -f /var/www/html/node_modules/.cache-write-test && test -f /tmp/npm-cache/.cache-write-test'
