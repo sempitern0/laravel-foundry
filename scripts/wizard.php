@@ -28,8 +28,8 @@ if ($existing && !yn('Reconfigure existing infrastructure? (No preserves your se
     echo "Keeping infrastructure settings.\n";
     exit(0);
 }
-echo "\n=== Laravel Let's Go — infrastructure wizard ===\n";
-$name = ask('Project slug (Docker Compose project name)', $env['PROJECT_NAME'] ?? 'letsgo');
+echo "\n=== Laravel Foundry — infrastructure wizard ===\n";
+$name = ask('Project slug (Docker Compose project name)', $env['PROJECT_NAME'] ?? 'foundry');
 if (!preg_match('/^[a-z][a-z0-9_-]{0,40}$/', $name)) { fwrite(STDERR, "Invalid project slug.\n"); exit(2); }
 $label = ask('Application display name', $env['APP_LABEL'] ?? $name);
 $db = ask('Database (postgres/mariadb/sqlite)', $env['DB_ENGINE'] ?? 'postgres', ['postgres','mariadb','sqlite']);

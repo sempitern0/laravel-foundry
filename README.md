@@ -1,6 +1,8 @@
 <div align="center">
 
-# Laravel Let's Go
+<img src="assets/foundry-mark.svg" alt="Laravel Foundry logo" width="108" height="108" />
+
+# Laravel Foundry
 
 **A Docker-first, frontend-neutral Laravel development template.**
 
@@ -91,11 +93,11 @@ The PHP-FPM runtime does not carry Composer or npm. The disposable Composer tool
 | Command | Purpose |
 | --- | --- |
 | `make up` | **Fast** detached creation/start; does not wait for full health |
-| `make up-detached` | Alias for `make up` |
+| `make up-detached` | Compatibility alias for `make up` |
 | `make up-wait` | Start and wait for declared container healthchecks |
 | `make up-logs` | Run Compose in foreground |
 | `make stop` / `make start` | Quick daily pause/resume without recreating containers |
-| `make down` | Remove containers and networks; **keep volumes** |
+| `make down` | Stop and remove containers/networks; **keep volumes** |
 | `make restart` | Stop/start existing containers |
 | `make rebuild` | Explicit image rebuild after Dockerfile changes |
 | `make ps` / `make logs` | Inspect containers and logs |
@@ -107,6 +109,8 @@ The PHP-FPM runtime does not carry Composer or npm. The disposable Composer tool
 | `make backup` | Export **local** database dump (not offsite backup) |
 | `make https-setup` | Local hostname/certificate guidance and Windows helper |
 | `make reset-project` | **Destructive** full reset of generated app and Compose volumes |
+| `make build` / `make rebuild` | Build images / rebuild and recreate selected running services |
+| `make config` | Validate Compose configuration |
 
 ### Fast startup versus readiness
 
@@ -170,3 +174,12 @@ Issues and pull requests are welcome. Test shell paths on Linux/WSL and PowerShe
 ## License
 
 Released under the [MIT License](LICENSE). © 2026 sempitern0.
+
+### Naming and compatibility
+
+The display name is **Laravel Foundry**. The upstream GitHub repository is still named `laravel-letsgo` until its owner explicitly renames it. Existing Docker projects retain their custom `PROJECT_NAME` and their local `.env`; new installations default to `foundry`. A rename of the GitHub repository is **not** necessary to use the rebranded template.
+
+The **runtime setup** uses `scripts/configure-app.php` as its single Laravel environment configurator. Historical shell/PowerShell configurators and the old `destroy` volume-only scripts have been removed; use `make reset-project` (with explicit confirmation) for a complete reset. For production releases `docker/php/Production.Dockerfile` remains separate from the development toolbox.
+
+The repository icon is an original geometric mark evoking modular building blocks. It is not the official Laravel or Docker brand mark.
+

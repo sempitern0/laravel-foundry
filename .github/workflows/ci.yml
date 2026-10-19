@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate POSIX scripts
-        run: sh -n scripts/bootstrap.sh scripts/checkout-starter.sh scripts/configure-app.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/destroy.sh scripts/reset-project.sh
+        run: sh -n scripts/bootstrap.sh scripts/checkout-starter.sh scripts/configure-app.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh
       - name: Enforce Sail-free generated applications
         run: |
           if [ -f app/composer.json ] && grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
@@ -21,7 +21,17 @@ jobs:
             exit 1
           fi
       - name: Validate Make recipes
-        run: make -n setup STARTER=svelte && make -n up && make -n up-wait && make -n start && make -n stop && make -n backup && make -n destroy && make -n env-sync && make -n reset-project
+        run: |
+          make -n setup STARTER=svelte
+          make -n up
+          make -n up-wait
+          make -n start
+          make -n stop
+          make -n backup
+          make -n reset-project
+          make -n rebuild
+          make -n lint
+          make -n https-setup && make -n env-sync && make -n reset-project
       - name: Ensure the template has no tracked application
         run: |
           if git ls-files app/ | grep -q .; then
@@ -77,6 +87,17 @@ jobs:
           assert 'up-wait:' in make and '--wait --wait-timeout 120' in make
           assert 'stop:' in make and 'start:' in make
           PY
+      - name: Validate cleanup invariants
+        run: |
+          test ! -e scripts/destroy.ps1
+          test ! -e scripts/destroy.sh
+          test ! -e scripts/configure-app.ps1
+          test ! -e scripts/configure-app.sh
+          test ! -e docker/assets/Dockerfile
+          test ! -e docker/nginx/production.conf
+          test ! -e docker/php/Dockerfile.dockerignore
+          ! grep -Eq '^(destroy|down-detached|https-cert):' Makefile
+          ! grep -q 'production.conf' docker/nginx/Dockerfile
       - name: Validate Compose
         run: docker compose config -q
       - name: Build and smoke-test PHP development toolchain

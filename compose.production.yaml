@@ -1,4 +1,4 @@
-name: ${PROJECT_NAME:-letsgo}-prod
+name: ${PROJECT_NAME:-foundry}-prod
 x-app: &app
   image: ${APP_IMAGE:?APP_IMAGE must point to a published release}
   env_file: [./app.production.env]

@@ -1,4 +1,4 @@
-name: ${PROJECT_NAME:-letsgo}
+name: ${PROJECT_NAME:-foundry}
 # PHP-FPM runtime deliberately does not have Composer or Node.
 x-runtime: &runtime
   build:
