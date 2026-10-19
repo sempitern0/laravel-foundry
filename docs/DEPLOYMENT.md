@@ -1,6 +1,6 @@
 # Deployment and environment parity
 
-This is a **reference operating procedure**, not a push-button production release. It explains how to develop against a stack comparable to production, test the *actual release artifacts* locally and in staging, and then promote those exact artifacts to production. Replace sample hosts, image tags and secrets with values for your product.
+This is a **reference operating procedure**, not a push-button production release. For a comparison of DigitalOcean, Hetzner, Vultr, Linode, Forge, Laravel Cloud and App Platform, see [HOSTING_PROVIDERS.md](HOSTING_PROVIDERS.md). It explains how to develop against a stack comparable to production, test the *actual release artifacts* locally and in staging, and then promote those exact artifacts to production. Replace sample hosts, image tags and secrets with values for your product.
 
 > **Critical prerequisite:** Laravel Foundry is an infrastructure template and ignores `app/`. Create a **separate product repository** that commits Laravel code, migrations, `composer.lock`, `package-lock.json`, infrastructure and `AGENTS.md`. Do not simply remove the ignore rule on the template and publish private application data.
 

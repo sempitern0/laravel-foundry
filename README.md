@@ -14,7 +14,7 @@
 
 **Bring your own Laravel starter. No Sail, Herd, required SaaS, or paid local database.**
 
-[Quick start](#quick-start) · [Architecture](#architecture) · [Commands](#daily-commands) · [HTTPS](#local-https-with-caddy) · [Troubleshooting](#troubleshooting)
+[Quick start](#quick-start) · [Architecture](#architecture) · [Commands](#daily-commands) · [HTTPS](#local-https-with-caddy) · [Hosting providers](docs/HOSTING_PROVIDERS.md) · [Troubleshooting](#troubleshooting)
 
 </div>
 
@@ -164,7 +164,7 @@ Reset requires typing `RESET <PROJECT_NAME>`. It removes the generated `app/`, r
 
 ## Local → staging → production: deploying the same tested release
 
-**[Deployment and environment-parity guide (step-by-step) →](docs/DEPLOYMENT.md)**
+**[Deployment and environment-parity guide (step-by-step) →](docs/DEPLOYMENT.md)** · **[Compare VPS, Forge, Laravel Cloud and App Platform →](docs/HOSTING_PROVIDERS.md)**
 
 | Environment | How it runs | What it verifies |
 | --- | --- | --- |

@@ -98,6 +98,13 @@ jobs:
           test ! -e docker/php/Dockerfile.dockerignore
           ! grep -Eq '^(destroy|down-detached|https-cert):' Makefile
           ! grep -q 'production.conf' docker/nginx/Dockerfile
+      - name: Check provider guide navigation and no implicit cloud deployment
+        run: |
+          test -s docs/HOSTING_PROVIDERS.md
+          grep -q 'HOSTING_PROVIDERS.md' README.md
+          grep -q 'HOSTING_PROVIDERS.md' docs/DEPLOYMENT.md
+          grep -q 'HOSTING_PROVIDERS.md' AGENTS.md
+          ! grep -Eq '^(deploy-cloud|deploy-production|provision-vps):' Makefile
       - name: Check staged and production environment contract
         run: |
           python3 - <<'PY'

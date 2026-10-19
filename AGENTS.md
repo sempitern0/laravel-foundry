@@ -151,3 +151,11 @@ make env-sync
 - Ensure staging and production use compatible PHP/DB major versions, extensions, schemas, queues, cache/session behavior, storage and trusted TLS.
 - Plan migrations for forwards/backwards compatibility. A code/image rollback does not automatically restore schema or data.
 - Preserve external backup/restore procedures and require explicit authorization for production migrations, disruptive actions and secret changes.
+
+## Provider-specific deployment decisions
+
+- Consult [docs/HOSTING_PROVIDERS.md](docs/HOSTING_PROVIDERS.md) before implementing VPS, Forge, Laravel Cloud or PaaS deployment workflows.
+- Preserve Foundry's provider-neutral application and local Compose defaults. Provider-specific credentials, infrastructure APIs, adapters and deploy scripts must be explicitly requested and documented, never installed or executed implicitly.
+- Distinguish **Compose on a self-managed VPS** from **Forge-managed PHP/Nginx** and **Laravel Cloud/App Platform-managed runtime**. Do not claim Compose files deploy unchanged on these PaaS products.
+- Keep source/lockfiles and migrations synchronized; promote identical image digests where Compose images are supported, or identical source revisions with verified builds when the platform rebuilds.
+- Account for durable uploaded files, queues/schedulers, DB version/collations, connection credentials, TLS, health checks, offsite backups and costs before making cloud portability claims.
