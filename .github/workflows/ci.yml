@@ -1,0 +1,16 @@
+name: Template CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check shell syntax
+        run: sh -n scripts/bootstrap.sh scripts/configure-app.sh
+      - name: Validate Compose
+        run: docker compose config -q
+      - name: Validate Makefile
+        run: make -n up && make -n migrate

@@ -1,0 +1,55 @@
+name: ${PROJECT_NAME:-letsgo}-prod
+x-app: &app
+  image: ${APP_IMAGE:?APP_IMAGE must point to a published release}
+  env_file: [./app.production.env]
+  restart: unless-stopped
+  volumes:
+    - app-storage:/var/www/html/storage
+  depends_on:
+    postgres: {condition: service_healthy}
+  networks: [internal]
+services:
+  app:
+    <<: *app
+    command: php-fpm
+  web:
+    image: ${WEB_IMAGE:?WEB_IMAGE must point to a published release}
+    restart: unless-stopped
+    depends_on: [app]
+    networks: [internal]
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?set a public FQDN}
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [web]
+    networks: [internal]
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file: [./db.production.env]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U ${DB_USERNAME:?set DB_USERNAME} -d ${DB_DATABASE:?set DB_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+    networks: [internal]
+  worker:
+    <<: *app
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+  scheduler:
+    <<: *app
+    command: php artisan schedule:work
+networks:
+  internal:
+volumes:
+  pgdata:
+  app-storage:
+  caddy-data:
+  caddy-config:
