@@ -80,9 +80,9 @@ services:
     profiles: [https]
     ports: ["127.0.0.1:${HTTPS_PORT:-443}:443"]
     environment:
-      LOCAL_DOMAIN: ${LOCAL_DOMAIN:-letsgo.test}
+      LOCAL_DOMAIN: ${LOCAL_DOMAIN:-foundry.test}
     volumes:
-      - ./docker/caddy/Caddyfile.local:/etc/caddy/Caddyfile:ro
+      - ${CADDY_LOCAL_CONFIG_FILE:-./docker/caddy/Caddyfile.local}:/etc/caddy/Caddyfile:ro
       - caddy_local_data:/data
       - caddy_local_config:/config
     # Avoid a second sequential readiness barrier during ordinary startup.

@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate POSIX scripts
-        run: sh -n scripts/bootstrap.sh scripts/checkout-starter.sh scripts/configure-app.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh
+        run: sh -n scripts/bootstrap.sh scripts/checkout-starter.sh scripts/configure-app.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh scripts/tenancy-check.sh
       - name: Enforce Sail-free generated applications
         run: |
           if [ -f app/composer.json ] && grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
@@ -32,6 +32,7 @@ jobs:
           make -n rebuild
           make -n lint
           make -n https-setup && make -n env-sync && make -n reset-project
+          make -n tenancy-check
       - name: Ensure the template has no tracked application
         run: |
           if git ls-files app/ | grep -q .; then
@@ -143,6 +144,18 @@ jobs:
           EOF
           docker compose --env-file /tmp/foundry-staging.env -f compose.production.yaml config -q
           docker compose --env-file /tmp/foundry-local.env -f compose.production.yaml config -q
+      - name: Validate SaaS opt-in and local wildcard Caddy routing
+        run: |
+          php -l scripts/wizard.php
+          sh -n scripts/tenancy-check.sh
+          test -s docs/SAAS.md
+          grep -q 'TENANCY_MODE' .env.example
+          grep -q 'TENANCY_MODE' scripts/wizard.php
+          grep -q 'Caddyfile.saas' scripts/wizard.php
+          grep -Fq '*.{$LOCAL_DOMAIN}' docker/caddy/Caddyfile.saas
+          grep -q 'tenancy-check:' Makefile
+          grep -q 'SAAS.md' README.md
+          docker compose config -q
       - name: Validate Compose
         run: docker compose config -q
       - name: Build and smoke-test PHP development toolchain

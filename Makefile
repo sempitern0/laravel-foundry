@@ -4,12 +4,14 @@ SETUP_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/
 BACKUP_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/backup.ps1
 RESET_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/reset-project.ps1
 HTTPS_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/https-setup.ps1
+TENANCY_CHECK_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/tenancy-check.ps1
 else
 SHELL := /bin/sh
 SETUP_SCRIPT := sh scripts/setup.sh
 BACKUP_SCRIPT := sh scripts/backup.sh
 RESET_SCRIPT := sh scripts/reset-project.sh
 HTTPS_SCRIPT := sh scripts/https-setup.sh
+TENANCY_CHECK_SCRIPT := sh scripts/tenancy-check.sh
 endif
 
 .DEFAULT_GOAL := help
@@ -18,7 +20,7 @@ STARTER ?=
 # Explicit all-profiles stop also removes containers started manually through a
 # profile not included in the current .env.
 ALL_PROFILES := --profile dev --profile tools --profile workers --profile scheduler --profile redis --profile https --profile postgres --profile mariadb --profile mysql --profile phpmyadmin --profile mailpit --profile pgweb --profile adminer
-.PHONY: help setup up up-detached up-wait up-logs start stop restart down build rebuild ps logs shell artisan composer npm migrate test lint backup env-sync https-setup reset-project worker scheduler redis config
+.PHONY: help setup up up-detached up-wait up-logs start stop restart down build rebuild ps logs shell artisan composer npm migrate test lint backup env-sync https-setup reset-project worker scheduler redis config tenancy-check
 
 help:
 	@echo "Laravel Foundry - self-hosted Laravel environments with Docker Compose"
@@ -31,6 +33,7 @@ help:
 	@echo "Tooling:     make composer CMD='install' | npm CMD='run build'"
 	@echo "Optional:    make worker | scheduler | redis"
 	@echo "Operations:  make env-sync | backup | https-setup | reset-project"
+	@echo "SaaS:        make tenancy-check     Check local tenant hostname routing"
 	@echo ""
 	@echo "WARNING: reset-project removes generated app files and Docker volumes."
 
@@ -120,3 +123,6 @@ https-setup:
 
 reset-project:
 	$(RESET_SCRIPT)
+
+tenancy-check:
+	$(TENANCY_CHECK_SCRIPT)

@@ -35,6 +35,7 @@ try {
     }
     if ($config['DB_ENGINE'] -eq 'postgres') { Compose -Cmd @('up','-d','postgres') }
     if ($config['DB_ENGINE'] -eq 'mariadb') { Compose -Cmd @('up','-d','mariadb') }
+    if ($config['DB_ENGINE'] -eq 'mysql') { Compose -Cmd @('up','-d','mysql') }
     Compose -Cmd @('up','-d','app','web')
     if (-not ((Get-Content 'app/.env') | Where-Object { $_ -match '^APP_KEY=.+$' })) {
         Compose -Cmd @('exec','-T','app','php','artisan','key:generate','--force')
@@ -55,5 +56,9 @@ try {
         Write-Host 'Windows helper: make https-setup (configures hosts and offers to trust the local CA).'
         Write-Host "Hosts:    127.0.0.1 $($config['LOCAL_DOMAIN'])"
         Write-Host 'Trust Caddy local root CA only after verifying it belongs to your own Docker deployment.'
+    }
+    if ($config['TENANCY_MODE'] -ne 'none') {
+        Write-Host "SaaS blueprint: $($config['TENANCY_MODE']). Local alpha/beta subdomains: make tenancy-check."
+        Write-Host 'This does not implement tenant isolation in Laravel; see docs/SAAS.md.'
     }
 } finally { Pop-Location }

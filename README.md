@@ -14,7 +14,7 @@
 
 **Bring your own Laravel starter. No Sail, Herd, required SaaS, or paid local database.**
 
-[Quick start](#quick-start) · [Architecture](#architecture) · [Commands](#daily-commands) · [HTTPS](#local-https-with-caddy) · [Hosting providers](docs/HOSTING_PROVIDERS.md) · [Troubleshooting](#troubleshooting)
+[Quick start](#quick-start) · [Architecture](#architecture) · [Commands](#daily-commands) · [HTTPS](#local-https-with-caddy) · [Hosting providers](docs/HOSTING_PROVIDERS.md) · [SaaS / multi-tenancy](docs/SAAS.md) · [Troubleshooting](#troubleshooting)
 
 </div>
 
@@ -27,10 +27,10 @@
 | --- | --- |
 | Backend | Laravel, PHP 8.4-FPM, Nginx |
 | Starter | Plain Laravel · Svelte + Inertia · Vue + Inertia · React + Inertia · Livewire |
-| Database | PostgreSQL · MariaDB · SQLite |
+| Database | PostgreSQL · MariaDB · MySQL · SQLite |
 | Queues | Sync · Database · Redis |
 | Email | Mailpit · Log · Custom SMTP |
-| Database UI | Pgweb (PostgreSQL) · Adminer · None |
+| Database UI | Pgweb · phpMyAdmin · Adminer · None |
 | HTTPS | Caddy local CA, custom `.test` hostname |
 | Development tools | Disposable Composer container, separate PHP-capable Node/Vite container |
 | Host support | Native PowerShell, Linux, macOS, WSL2 |
@@ -211,3 +211,10 @@ The repository icon is an original geometric mark evoking modular building block
 ### MySQL and MariaDB setup
 
 In `make setup`, select `mysql` or `mariadb`, then choose `phpmyadmin` as your database UI (default for new MySQL/MariaDB projects) or `adminer`. The UI is reachable on the host at `http://localhost:8081`; no database port is exposed to the LAN. Run `make reset-project` with explicit confirmation when intentionally deleting a database and application to start fresh; changing engines with existing data requires a deliberate migration, not just editing `.env`.
+
+
+## SaaS / multi-tenancy (optional)
+
+The interactive wizard can record an optional `TENANCY_MODE`: `none`, `shared-db` or `database-per-tenant`. Enabling it configures **local SaaS routing** with Caddy for apex and wildcard subdomains when HTTPS is selected, e.g. `alpha.foundry.test` and `beta.foundry.test`. Run `make tenancy-check` to smoke-test tenant hostname routing. **This is a development blueprint, not built-in tenant isolation or package installation.** Laravel tenant resolvers, tenant-owned queries, access control, queue propagation and data-isolation tests remain the application's responsibility.
+
+[**SaaS architecture, package comparisons and isolation testing guide →**](docs/SAAS.md)

@@ -159,3 +159,12 @@ make env-sync
 - Distinguish **Compose on a self-managed VPS** from **Forge-managed PHP/Nginx** and **Laravel Cloud/App Platform-managed runtime**. Do not claim Compose files deploy unchanged on these PaaS products.
 - Keep source/lockfiles and migrations synchronized; promote identical image digests where Compose images are supported, or identical source revisions with verified builds when the platform rebuilds.
 - Account for durable uploaded files, queues/schedulers, DB version/collations, connection credentials, TLS, health checks, offsite backups and costs before making cloud portability claims.
+
+
+## SaaS and multi-tenancy
+
+- Read [docs/SAAS.md](docs/SAAS.md) before adding tenant-aware models, middleware, queues, domain routing, subscriptions, jobs or storage.
+- `TENANCY_MODE` only sets local development blueprint preferences. Do **not** mistake its value, a wildcard certificate or the `make tenancy-check` connectivity smoke test for actual tenant isolation.
+- Always resolve tenant identity server-side, authorize every tenant-owned resource and scope queries/writes at the database/application boundary. Prevent spoofed tenant headers, IDOR, cross-tenant relationships, cache leaks and tenant context persistence across reused workers.
+- Add adversarial Laravel feature tests covering two tenants, unauthorized read/write/exports, duplicate data, queued jobs, session isolation, uploads and per-tenant migration/provisioning where used.
+- Do not auto-install stancl/tenancy, spatie/laravel-multitenancy, Spark, Cashier, Stripe or other packages without a product-specific decision and version-compatibility checks.
