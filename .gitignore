@@ -1,3 +1,5 @@
+/certs/
+/caddy-local-root.crt
 /app/
 /app-backups/
 .env

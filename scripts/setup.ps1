@@ -41,7 +41,9 @@ try {
     Write-Host ''
     Write-Host "HTTP:     http://localhost:$($config['HTTP_PORT'])"
     if ($config['HTTPS_ENABLED'] -eq '1') {
-        Write-Host "HTTPS:    https://$($config['LOCAL_DOMAIN']):$($config['HTTPS_PORT'])"
+        $urlPort = if ($config['HTTPS_PORT'] -eq '443') { '' } else { ":$($config['HTTPS_PORT'])" }
+        Write-Host "HTTPS:    https://$($config['LOCAL_DOMAIN'])$urlPort"
+        Write-Host 'Windows helper: make https-setup (configures hosts and offers to trust the local CA).'
         Write-Host "Hosts:    127.0.0.1 $($config['LOCAL_DOMAIN'])"
         Write-Host 'Trust Caddy local root CA only after verifying it belongs to your own Docker deployment.'
     }

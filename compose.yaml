@@ -75,7 +75,7 @@ services:
   caddy-local:
     image: caddy:2-alpine
     profiles: [https]
-    ports: ["127.0.0.1:${HTTPS_PORT:-8443}:443"]
+    ports: ["127.0.0.1:${HTTPS_PORT:-443}:443"]
     environment:
       LOCAL_DOMAIN: ${LOCAL_DOMAIN:-letsgo.test}
     volumes:

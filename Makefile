@@ -4,17 +4,19 @@ ifeq ($(OS),Windows_NT)
 SETUP_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup.ps1
 BACKUP_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/backup.ps1
 DESTROY_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/destroy.ps1
+HTTPS_SETUP_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/https-setup.ps1
 else
 SHELL := /bin/sh
 SETUP_SCRIPT := sh scripts/setup.sh
 BACKUP_SCRIPT := sh scripts/backup.sh
 DESTROY_SCRIPT := sh scripts/destroy.sh
+HTTPS_SETUP_SCRIPT := sh scripts/https-setup.sh
 endif
 
 .DEFAULT_GOAL := help
 DC := docker compose
 STARTER ?=
-.PHONY: help setup up up-detached down down-detached build rebuild restart logs ps shell artisan composer npm migrate test lint worker scheduler redis destroy config backup https-cert
+.PHONY: help setup up up-detached down down-detached build rebuild restart logs ps shell artisan composer npm migrate test lint worker scheduler redis destroy config backup https-cert https-setup
 
 help:
 	@echo "Laravel Let's Go - Docker-based, frontend-neutral Laravel template"
@@ -28,7 +30,7 @@ help:
 	@echo "  make rebuild                 Rebuild PHP image after Dockerfile changes"
 	@echo "  make artisan CMD='route:list' / composer CMD='require ...'"
 	@echo "  make npm CMD='run build' / migrate / test / lint"
-	@echo "  make worker / scheduler / redis / backup / destroy"
+	@echo "  make worker / scheduler / redis / backup / destroy"\n\t@echo "  make https-setup              Configure HTTPS hosts and optional CA trust"
 
 setup:
 	$(SETUP_SCRIPT) $(if $(strip $(STARTER)),$(if $(filter Windows_NT,$(OS)),-Starter "$(STARTER)","$(STARTER)"),)
@@ -100,3 +102,6 @@ destroy:
 https-cert:
 	$(DC) --profile https cp caddy-local:/data/caddy/pki/authorities/local/root.crt ./caddy-local-root.crt
 	@echo "Inspect the certificate before trusting it. See README HTTPS section."
+
+https-setup:
+	$(HTTPS_SETUP_SCRIPT)

@@ -16,7 +16,7 @@ $mail=$env['MAIL_ENGINE']??'mailpit';
 $queue=$env['QUEUE_ENGINE']??'sync';
 $values=[
     'APP_NAME'=>$env['APP_LABEL']??'Laravel',
-    'APP_URL'=>$https?'https://'.$env['LOCAL_DOMAIN'].':'.($env['HTTPS_PORT']??'8443'):'http://localhost:'.($env['HTTP_PORT']??'8080'),
+    'APP_URL'=>$https?'https://'.$env['LOCAL_DOMAIN'].(($env['HTTPS_PORT']??'443')==='443'?'':':'.$env['HTTPS_PORT']):'http://localhost:'.($env['HTTP_PORT']??'8080'),
     'DB_CONNECTION'=> $db==='postgres'?'pgsql':($db==='mariadb'?'mysql':'sqlite'),
     'DB_HOST'=> $db==='mariadb'?'mariadb':'postgres',
     'DB_PORT'=> $db==='mariadb'?'3306':'5432',

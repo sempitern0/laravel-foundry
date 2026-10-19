@@ -41,6 +41,10 @@ if ($db !== 'postgres' && $ui === 'pgweb') { echo "Pgweb supports PostgreSQL onl
 $https = yn('Local HTTPS with Caddy?', ($env['HTTPS_ENABLED'] ?? '0') === '1');
 $domain = $https ? ask('Local domain (*.test recommended)', $env['LOCAL_DOMAIN'] ?? "$name.test") : ($env['LOCAL_DOMAIN'] ?? "$name.test");
 if ($https && !preg_match('/^[a-z0-9][a-z0-9.-]*\.test$/', $domain)) { fwrite(STDERR, "Use a .test domain, e.g. $name.test\n"); exit(2); }
+$httpsPort = $https ? ask('Local HTTPS port (443 avoids typing a port in URLs)', $env['HTTPS_PORT'] ?? '443') : ($env['HTTPS_PORT'] ?? '443');
+if (!ctype_digit((string) $httpsPort) || (int) $httpsPort < 1 || (int) $httpsPort > 65535) {
+    fwrite(STDERR, "Invalid HTTPS port (1–65535).\n"); exit(2);
+}
 $profiles = [];
 if ($db !== 'sqlite') $profiles[]=$db;
 if ($queue === 'redis') $profiles[]='redis';
@@ -54,7 +58,7 @@ $env = array_merge($env, [
     'PROJECT_NAME'=>$name,'APP_LABEL'=>$label,'SETUP_CONFIGURED'=>'1',
     'DB_ENGINE'=>$db,'DB_SERVER'=>$db === 'mariadb' ? 'mariadb' : 'postgres',
     'QUEUE_ENGINE'=>$queue,'MAIL_ENGINE'=>$mail,'DB_UI'=>$ui,
-    'HTTPS_ENABLED'=>$https?'1':'0','LOCAL_DOMAIN'=>$domain,
+    'HTTPS_ENABLED'=>$https?'1':'0','LOCAL_DOMAIN'=>$domain,'HTTPS_PORT'=>$httpsPort,
     'COMPOSE_PROFILES'=>implode(',', $profiles),
 ]);
 if ($mail === 'smtp') {
@@ -78,4 +82,4 @@ foreach ($env as $key=>$value) {
 }
 file_put_contents($path, implode("\n",$lines)."\n");
 echo "\nConfigured $name: DB=$db, queue=$queue, mail=$mail, admin=$ui, HTTPS=".($https?'yes':'no')."\n";
-if ($https) echo "Add 127.0.0.1 $domain to your hosts file; then open https://$domain:".($env['HTTPS_PORT']??'8443')."\n";
+if ($https) echo "Add 127.0.0.1 $domain to your hosts file; then open https://$domain".($httpsPort==='443'?'':":$httpsPort")."\nRun make https-setup on Windows to configure hosts and certificate trust with confirmation.\n";

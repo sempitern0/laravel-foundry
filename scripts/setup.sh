@@ -26,3 +26,13 @@ if [ "$https" = "1" ]; then
 fi
 docker compose up -d
 docker compose ps
+
+# The CA root is generated within Caddy; installing trust on the host is a
+# distinct, opt-in operation, never part of unattended setup.
+if [ "$https" = "1" ]; then
+  domain=$(sed -n 's/^LOCAL_DOMAIN=//p' .env | tr -d '"')
+  port=$(sed -n 's/^HTTPS_PORT=//p' .env | tr -d '"')
+  suffix=":$port"
+  [ "$port" = "443" ] && suffix=""
+  printf 'HTTPS: https://%s%s\nConfigure hosts and trust the local CA: make https-setup\n' "$domain" "$suffix"
+fi
