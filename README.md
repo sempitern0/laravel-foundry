@@ -220,3 +220,7 @@ In `make setup`, select `mysql` or `mariadb`, then choose `phpmyadmin` as your d
 The interactive wizard can record an optional `TENANCY_MODE`: `none`, `shared-db` or `database-per-tenant`. Enabling it configures **local SaaS routing** with Caddy for apex and wildcard subdomains when HTTPS is selected, e.g. `alpha.foundry.test` and `beta.foundry.test`. Run `make tenancy-check` to smoke-test tenant hostname routing. **This is a development blueprint, not built-in tenant isolation or package installation.** Laravel tenant resolvers, tenant-owned queries, access control, queue propagation and data-isolation tests remain the application's responsibility.
 
 [**SaaS architecture, package comparisons and isolation testing guide →**](docs/SAAS.md)
+
+### Tests and starter customization
+
+See [Testing and customizing starters](docs/TESTING_AND_STARTERS.md) for Docker test environments, CSRF 419 failures, product authorization tests, disabled Fortify routes with Wayfinder, and Svelte/font warnings. `make test CMD="--filter=AuthenticationTest"` runs a focused suite in the testing environment.

@@ -9,8 +9,7 @@ x-runtime: &runtime
   working_dir: /var/www/html
   volumes:
     - ./app:/var/www/html
-  environment:
-    APP_ENV: local
+  # Laravel .env and PHPUnit select APP_ENV; do not pin it in the container.
   networks: [internal]
 # Laravel Composer hooks may invoke npm, so the disposable tooling target
 # contains PHP (matching runtime extensions), Composer and Node/npm.
@@ -29,7 +28,6 @@ x-tooling: &tooling
     - npm_cache:/tmp/npm-cache
     - composer_home:/tmp/composer
   environment:
-    APP_ENV: local
     HOME: /tmp
     COMPOSER_HOME: /tmp/composer
     DEV_UID: ${DEV_UID:-1000}
@@ -99,7 +97,6 @@ services:
     working_dir: /var/www/html
     command: sh -c "npm run dev -- --host 0.0.0.0"
     environment:
-      APP_ENV: local
       HOME: /tmp
       npm_config_cache: /tmp/npm-cache
       npm_config_prefer_offline: "true"
