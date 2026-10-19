@@ -164,3 +164,17 @@ In PowerShell, set environment variables using `$env:PROJECT_NAME='myapp-prod'`,
 The long-running PHP-FPM runtime and workers exclude Composer and Node. `docker compose run --rm --no-deps composer composer install` starts an on-demand toolbox with the same PHP extensions as the runtime, plus Node/npm for Laravel starter Composer hooks. `make composer CMD="require vendor/package"` uses the toolbox; `make npm CMD="install"` uses the separate Node container. Vite remains a separate frontend process.
 
 The Composer toolbox joins the application network only when a Laravel hook needs to reach a database, and also joins the egress-capable `devtools` network. The Node service uses `devtools` for dependency downloads. This arrangement improves process separation and reduces the runtime toolchain surface, but **Docker networks do not provide strict isolation**, especially when the toolbox mounts project source. Neither Composer nor npm should be run on untrusted packages. It does not materially speed up downloads; named volumes and caches remain responsible for the speed improvement.
+
+
+### Wayfinder and PHP in Vite
+
+Official Laravel starters using Wayfinder invoke `php artisan wayfinder:generate --with-form` during `npm run build` and the Vite development server. The separate Node/Vite container therefore uses a `frontend` Docker target with PHP CLI and the same extensions as Laravel, **without Composer**. Composer remains in the disposable tooling image, and PHP-FPM remains free of Node/npm/Composer. The PHP-FPM healthcheck is also attached to the actual app service, not the Composer toolbox.
+
+After updating the branch on Windows, recover without removing the application or database volumes:
+
+```powershell
+git pull --ff-only
+docker compose build node
+docker compose --profile dev run --rm --no-deps --entrypoint npm node run build
+make up-detached
+```

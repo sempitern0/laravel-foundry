@@ -44,15 +44,15 @@ services:
   app:
     <<: *runtime
     command: php-fpm
-  composer:
-    <<: *tooling
-    profiles: [tools]
-    command: ["composer", "--version"]
     healthcheck:
       test: ["CMD", "php-fpm", "-t"]
       interval: 20s
       retries: 3
       timeout: 10s
+  composer:
+    <<: *tooling
+    profiles: [tools]
+    command: ["composer", "--version"]
   web:
     image: nginx:1.27-alpine
     ports: ["127.0.0.1:${HTTP_PORT:-8080}:80"]
@@ -81,12 +81,16 @@ services:
       web: {condition: service_healthy}
     networks: [internal]
   node:
-    image: node:22-bookworm-slim
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: frontend
     profiles: [dev]
     user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
     working_dir: /var/www/html
     command: sh -c "npm run dev -- --host 0.0.0.0"
     environment:
+      APP_ENV: local
       HOME: /tmp
       npm_config_cache: /tmp/npm-cache
       npm_config_prefer_offline: "true"
@@ -99,7 +103,8 @@ services:
       - npm_cache:/tmp/npm-cache
       - ./scripts/npm-ensure.sh:/opt/letsgo/npm-ensure.sh:ro
     ports: ["127.0.0.1:${VITE_PORT:-5173}:5173"]
-    networks: [devtools]
+    # Wayfinder can invoke Artisan and needs optional DB access.
+    networks: [internal, devtools]
   postgres:
     image: postgres:17-alpine
     profiles: [postgres]

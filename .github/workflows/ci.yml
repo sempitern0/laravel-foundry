@@ -49,7 +49,7 @@ jobs:
         run: docker compose config -q
       - name: Build and smoke-test PHP development toolchain
         run: |
-          docker compose build app composer
+          docker compose build app composer node
           docker compose run --rm --no-deps --user 0:0 composer sh -ec 'chown "$DEV_UID:$DEV_GID" /var/www/html/node_modules /tmp/npm-cache /tmp/composer'
           docker compose run --rm --no-deps composer sh -ec 'php -v && composer --version && node --version && npm --version && touch /var/www/html/node_modules/.cache-write-test && touch /tmp/npm-cache/.cache-write-test && touch /tmp/composer/.cache-write-test'
       - name: Forbid attribute-preserving copy onto Docker Desktop bind mounts
@@ -78,6 +78,9 @@ jobs:
       - name: Assert runtime excludes dev tools
         run: |
           docker compose run --rm --no-deps --entrypoint sh app -ec 'php-fpm -t && ! command -v composer && ! command -v npm && ! command -v node'
+      - name: Check Vite has PHP CLI for Wayfinder
+        run: |
+          docker compose --profile dev run --rm --no-deps --entrypoint sh node -ec 'php -v && node --version && npm --version && ! command -v composer'
       - name: Verify shared dependencies and matching Linux libc
         run: |
           docker compose --profile dev run --rm --no-deps --entrypoint sh node -ec 'node --version && npm --version && test -f /var/www/html/node_modules/.cache-write-test && test -f /tmp/npm-cache/.cache-write-test'
