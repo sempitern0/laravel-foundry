@@ -39,14 +39,29 @@ esac
 
 if [ -f app/artisan ]; then
   echo "Existing Laravel app found. Preserving its code and frontend."
+  # Always rebuild on setup: this is essential when a previously built PHP
+  # image lacked npm and setup stopped midway through a Composer hook.
+  docker compose build app
+  docker compose run --rm --no-deps app sh -c 'node --version && npm --version'
+
   if grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
     echo "Removing unwanted Laravel Sail from existing app (and updating composer.lock)."
-    docker compose build app
     docker compose run --rm --no-deps app composer remove laravel/sail --dev --no-interaction --no-progress
   fi
-  if [ ! -f app/vendor/autoload.php ]; then
-    docker compose build app
+
+  # Composer may have written vendor/autoload.php and composer.lock BEFORE
+  # failing in post-update-cmd. A valid autoloader is not an install marker.
+  if [ ! -f app/.letsgo-starter ] || [ ! -f app/vendor/autoload.php ]; then
     docker compose run --rm --no-deps app composer install --no-interaction --prefer-dist --no-progress
+    if [ ! -f app/.letsgo-starter ] && grep -q 'artisan install:features' app/composer.json; then
+      echo "Replaying interrupted Laravel feature-install hook."
+      docker compose run --rm --no-deps app composer run-script post-update-cmd --no-interaction
+    fi
+    # For an app restored after an interrupted setup, remember that the
+    # bootstrap completed without guessing its selected frontend starter.
+    if [ ! -f app/.letsgo-starter ]; then
+      printf '%s\n' 'existing' > app/.letsgo-starter
+    fi
   fi
   exit 0
 fi
@@ -59,6 +74,7 @@ fi
 
 echo "Installing Laravel starter $starter from $repository ($revision)"
 docker compose build app
+docker compose run --rm --no-deps app sh -c 'node --version && npm --version'
 docker compose run --rm --no-deps app git clone --depth 1 --branch "$revision" "https://github.com/$repository.git" /var/www/html
 docker compose run --rm --no-deps app rm -rf /var/www/html/.git
 # Fresh official starter repositories have no composer.lock. Drop Sail from

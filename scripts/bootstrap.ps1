@@ -64,14 +64,30 @@ try {
 
     if (Test-Path -LiteralPath 'app/artisan') {
         Write-Host 'Existing Laravel app found. Preserving its code and frontend.'
+        # A previous setup might have failed in Composer's post-update-cmd
+        # AFTER vendor/autoload.php was written. Always rebuild/check tools.
+        Invoke-Compose -Arguments @('build', 'app')
+        Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'sh', '-c', 'node --version && npm --version')
+
         if ((Get-Content -LiteralPath 'app/composer.json' -Raw) -match '"laravel/sail"\s*:') {
             Write-Host 'Removing unwanted Laravel Sail from existing app (and updating composer.lock).'
-            Invoke-Compose -Arguments @('build', 'app')
             Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'composer', 'remove', 'laravel/sail', '--dev', '--no-interaction', '--no-progress')
         }
-        if (-not (Test-Path -LiteralPath 'app/vendor/autoload.php')) {
-            Invoke-Compose -Arguments @('build', 'app')
+
+        if (-not (Test-Path -LiteralPath 'app/.letsgo-starter') -or -not (Test-Path -LiteralPath 'app/vendor/autoload.php')) {
             Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'composer', 'install', '--no-interaction', '--prefer-dist', '--no-progress')
+            $composerManifest = Get-Content -LiteralPath 'app/composer.json' -Raw
+            if (-not (Test-Path -LiteralPath 'app/.letsgo-starter') -and $composerManifest.Contains('artisan install:features')) {
+                Write-Host 'Replaying interrupted Laravel feature-install hook.'
+                Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'composer', 'run-script', 'post-update-cmd', '--no-interaction')
+            }
+            if (-not (Test-Path -LiteralPath 'app/.letsgo-starter')) {
+                [System.IO.File]::WriteAllText(
+                    (Join-Path (Get-Location).Path 'app/.letsgo-starter'),
+                    "existing`n",
+                    (New-Object System.Text.UTF8Encoding($false))
+                )
+            }
         }
         return
     }
@@ -85,6 +101,7 @@ try {
 
     Write-Host "Installing Laravel starter $Starter from $repository ($revision)"
     Invoke-Compose -Arguments @('build', 'app')
+    Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'sh', '-c', 'node --version && npm --version')
     Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'git', 'clone', '--depth', '1', '--branch', $revision, "https://github.com/$repository.git", '/var/www/html')
     Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'rm', '-rf', '/var/www/html/.git')
     # Exclude Sail from composer.json before dependency resolution and lockfile creation.

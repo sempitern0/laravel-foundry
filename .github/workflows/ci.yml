@@ -24,6 +24,10 @@ jobs:
         run: make -n setup STARTER=svelte && make -n backup && make -n destroy
       - name: Validate Compose
         run: docker compose config -q
+      - name: Build and smoke-test PHP development toolchain
+        run: |
+          docker compose build app
+          docker compose run --rm --no-deps app sh -c 'php -v && composer --version && node --version && npm --version'
   powershell-scripts:
     runs-on: windows-latest
     steps:

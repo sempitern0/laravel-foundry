@@ -6,7 +6,7 @@
 
 - Docker Desktop with Linux containers + Compose v2 on Windows, or Docker Engine + Compose v2 on Linux.
 - Git and GNU Make if you want `make` shortcuts. **PowerShell users can also run the scripts directly without Make.**
-- No host PHP, Composer, Node or PostgreSQL.
+- No host PHP, Composer, Node or PostgreSQL. The development PHP image includes Node/npm because the official Laravel starter's Composer hooks can invoke npm during `artisan install:features`. Production PHP images do not include Node; Vite remains a separate dev service.
 - On Linux set `DEV_UID` and `DEV_GID` in root `.env` to match your user when necessary. Windows uses Docker Desktop's bind mount handling.
 
 ## Initialize a Laravel project
@@ -40,6 +40,10 @@ sh scripts/setup.sh svelte
 Without a STARTER option, an interactive selection menu appears. In non-interactive execution, plain Laravel is used by default. Setup is designed to be repeatable: it preserves an existing `app/artisan` and does not silently change frontend. When creating a new application, use a fresh template checkout rather than deleting code.
 
 **Important:** the initial setup downloads the chosen official Laravel starter into `app/`, **removes Laravel Sail from composer.json before the first `composer install`**, then installs Composer and npm dependencies in Docker, sets up PostgreSQL and Mailpit, generates a missing APP_KEY and runs Laravel migrations. Internet access is needed for the initial downloads.
+
+### Recovering from a partially completed setup
+
+If Composer stopped with `artisan install:features` / `npm: not found`, **do not delete `app/` or reset database volumes**. Update this template branch and rerun `make setup STARTER=svelte` (or the original starter). Setup now rebuilds the PHP dev image and detects incomplete bootstrap via `app/.letsgo-starter`; it reruns Composer and explicitly replays the feature-install hook when needed, even if `vendor/autoload.php` already exists.
 
 ### Laravel Sail policy
 
