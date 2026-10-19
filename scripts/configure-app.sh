@@ -1,13 +1,23 @@
 #!/usr/bin/env sh
 set -eu
+[ -f .env ] || { echo "Run make setup first (.env missing)" >&2; exit 1; }
 [ -f app/.env ] || cp app/.env.example app/.env
-# Keep credentials synchronized with compose .env (no eval or shell sourcing).
-getval() { sed -n "s/^$1=//p" .env | head -n 1; }
+
+getval() {
+  value=$(sed -n "s/^$1=//p" .env | head -n 1)
+  [ -n "$value" ] || { echo "Missing setting '$1' in .env" >&2; exit 1; }
+  printf '%s' "$value"
+}
 putval() {
-  key="$1"; value="$2"
+  key="$1"
+  value="$2"
+  escaped=$(printf '%s' "$value" | sed 's/[\\&|]/\\&/g')
   if grep -q "^$key=" app/.env; then
-    sed -i.bak "s|^$key=.*|$key=$value|" app/.env && rm -f app/.env.bak
-  else printf '%s=%s\n' "$key" "$value" >> app/.env; fi
+    sed "s|^$key=.*|$key=$escaped|" app/.env > app/.env.letsgo-tmp
+    mv app/.env.letsgo-tmp app/.env
+  else
+    printf '%s=%s\n' "$key" "$value" >> app/.env
+  fi
 }
 putval APP_URL "http://localhost:$(getval HTTP_PORT)"
 putval DB_CONNECTION pgsql
@@ -23,3 +33,4 @@ putval QUEUE_CONNECTION database
 putval CACHE_STORE database
 putval SESSION_DRIVER database
 putval REDIS_HOST redis
+# APP_KEY is intentionally left untouched. make setup only generates a missing key.

@@ -1,6 +1,15 @@
 .env
-app/
-backups/
+/app/.env
+/app/.env.*
+!/app/.env.example
+/app/vendor/
+/app/node_modules/
+/app/public/build/
+/app/public/hot
+/app/storage/*.key
+/app/.phpunit.result.cache
+/app/.phpunit.cache/
+/backups/
 *.production.env
 *.log
 .DS_Store

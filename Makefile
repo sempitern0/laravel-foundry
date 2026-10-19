@@ -1,27 +1,31 @@
 SHELL := /bin/sh
 .DEFAULT_GOAL := help
 DC := docker compose
-.PHONY: help setup up down restart logs ps shell artisan composer npm migrate test lint worker scheduler redis clean destroy config backup
+STARTER ?=
+.PHONY: help setup up down restart logs ps shell artisan composer npm migrate test lint worker scheduler redis destroy config backup
 help:
-	@echo "Letsgo — Docker only (no Sail, no paid tooling)"
-	@echo "  make setup       Bootstrap Laravel + Svelte starter, deps, DB, migration"
-	@echo "  make up          Start app, PostgreSQL, Mailpit, Vite"
-	@echo "  make down        Stop containers (keep data)"
-	@echo "  make artisan CMD='route:list'    Run artisan"
-	@echo "  make composer CMD='require ...'  Run Composer"
-	@echo "  make npm CMD='run check'         Run npm"
-	@echo "  make migrate / test / lint / logs / ps / shell"
-	@echo "  make worker / scheduler / redis  Start optional services"
-	@echo "  make backup      Dump local PostgreSQL to backups/"
-	@echo "  make destroy     DELETE local volumes (confirmation required)"
+	@echo "Laravel Let's Go — any official Laravel starter, Docker only"
+	@echo "  make setup                   Choose a starter interactively (plain Laravel by default)"
+	@echo "  make setup STARTER=laravel   Laravel only"
+	@echo "  make setup STARTER=svelte    Svelte + Inertia"
+	@echo "  make setup STARTER=vue       Vue + Inertia"
+	@echo "  make setup STARTER=react     React + Inertia"
+	@echo "  make setup STARTER=livewire  Livewire"
+	@echo "  make up / down / logs / ps   Container management"
+	@echo "  make artisan CMD='route:list' / composer CMD='require ...'"
+	@echo "  make npm CMD='run build' / migrate / test / lint"
+	@echo "  make worker / scheduler / redis / backup / destroy"
 setup:
-	sh scripts/bootstrap.sh
+	sh scripts/bootstrap.sh "$(STARTER)"
 	sh scripts/configure-app.sh
 	$(DC) up -d --build postgres mailpit app web
+	@if ! grep -Eq '^APP_KEY=base64:.+' app/.env; then $(DC) exec -T app php artisan key:generate --force; fi
 	$(DC) exec -T app php artisan migrate --force
+	$(DC) --profile dev run --rm --no-deps --entrypoint npm node install
 	$(DC) --profile dev up -d node
-	@echo "App: http://localhost:$${HTTP_PORT:-8080} | Mailpit: http://localhost:$${MAILPIT_PORT:-8025}"
+	@echo "App: http://localhost:$$(sed -n 's/^HTTP_PORT=//p' .env) | Mailpit: http://localhost:$$(sed -n 's/^MAILPIT_PORT=//p' .env)"
 up:
+	@test -f app/artisan || { echo "First run: make setup"; exit 1; }
 	$(DC) --profile dev up -d --build
 down:
 	$(DC) --profile dev --profile workers --profile redis down --remove-orphans
@@ -37,7 +41,7 @@ artisan:
 composer:
 	$(DC) exec app composer $(CMD)
 npm:
-	$(DC) run --rm --no-deps node npm $(CMD)
+	$(DC) --profile dev run --rm --no-deps --entrypoint npm node $(CMD)
 migrate:
 	$(DC) exec app php artisan migrate
 test:
