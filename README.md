@@ -65,6 +65,8 @@ Windows: edit `C:\\Windows\\System32\\drivers\\etc\\hosts` as Administrator. Lin
 
 ### Recovering from a partially completed setup
 
+If Git cloned successfully but the checkout failed with `cp: preserving times for '/var/www/html/.': Operation not permitted`, the issue was the old `cp -a` copying directory metadata onto a Windows/Docker Desktop bind mount. The updated helper uses `cp -R` and removes nested Git metadata in temporary storage. **Do not run `make destroy` or remove database volumes.** After pulling this change, run setup again and select **Keep** to resume Composer if `app/artisan` exists. If `app/` contains only an incomplete copy without `artisan`, choose **Replace** to archive those partial files before retrying.
+
 If a fresh setup stopped with `fatal: destination path '/var/www/html' already exists and is not an empty directory`, the cause was the separate Docker `node_modules` volume mounted under the otherwise empty `app/` directory. The corrected bootstrap clones to a disposable path inside the PHP container and copies only the source into `app/`; there is **no reason to delete `app/` or Docker volumes**. The infrastructure wizard now runs before starter download, and fails explicitly if its input is disconnected instead of selecting defaults silently.
 
 If Composer stopped with `artisan install:features` / `npm: not found`, **do not delete `app/` or reset database volumes**. Update this template branch and rerun `make setup STARTER=svelte` (or the original starter). Setup now rebuilds the PHP dev image and detects incomplete bootstrap via `app/.letsgo-starter`; it reruns Composer and explicitly replays the feature-install hook when needed, even if `vendor/autoload.php` already exists.

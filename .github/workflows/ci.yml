@@ -52,6 +52,12 @@ jobs:
           docker compose build app
           docker compose run --rm --no-deps --user 0:0 app sh -ec 'chown "$DEV_UID:$DEV_GID" /var/www/html/node_modules /tmp/npm-cache /tmp/composer'
           docker compose run --rm --no-deps app sh -ec 'php -v && composer --version && node --version && npm --version && touch /var/www/html/node_modules/.cache-write-test && touch /tmp/npm-cache/.cache-write-test && touch /tmp/composer/.cache-write-test'
+      - name: Forbid attribute-preserving copy onto Docker Desktop bind mounts
+        run: |
+          if grep -Eq '^[[:space:]]*cp[[:space:]]+-a([[:space:]]|$)' scripts/checkout-starter.sh; then
+            echo 'Use cp -R without -a; Docker Desktop may refuse metadata operations.'
+            exit 1
+          fi
       - name: Test starter checkout with the mounted node_modules directory
         run: |
           docker compose run --rm --no-deps --entrypoint sh app -ec '
@@ -67,6 +73,7 @@ jobs:
             sh /opt/letsgo/checkout-starter.sh main "$repo"
             test -f /var/www/html/artisan
             test -d /var/www/html/node_modules
+            test ! -e /var/www/html/.git
           '
       - name: Verify shared dependencies and matching Linux libc
         run: |
