@@ -32,3 +32,10 @@ jobs:
             }
             Write-Host "Parsed: $($script.Name)"
           }
+      - name: Verify native Windows Make dispatch
+        shell: powershell
+        run: |
+          choco install make -y --no-progress
+          $dryRun = & make -n setup STARTER=svelte 2>&1 | Out-String
+          Write-Host $dryRun
+          if ($dryRun -notmatch 'powershell.exe' -or $dryRun -match '^sh scripts/setup.sh') { throw 'Windows setup must use PowerShell, not sh' }

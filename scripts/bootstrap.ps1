@@ -21,7 +21,7 @@ try {
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
         throw 'Docker is required (Docker Engine / Docker Desktop with Compose v2).'
     }
-    Invoke-Compose @('version')
+    Invoke-Compose -Arguments @('version')
 
     if ([string]::IsNullOrWhiteSpace($Starter)) {
         if ([Console]::IsInputRedirected) {
@@ -65,8 +65,8 @@ try {
     if (Test-Path -LiteralPath 'app/artisan') {
         Write-Host 'Existing Laravel app found. Preserving its code and frontend.'
         if (-not (Test-Path -LiteralPath 'app/vendor/autoload.php')) {
-            Invoke-Compose @('build', 'app')
-            Invoke-Compose @('run', '--rm', '--no-deps', 'app', 'composer', 'install', '--no-interaction', '--prefer-dist', '--no-progress')
+            Invoke-Compose -Arguments @('build', 'app')
+            Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'composer', 'install', '--no-interaction', '--prefer-dist', '--no-progress')
         }
         return
     }
@@ -79,13 +79,13 @@ try {
     }
 
     Write-Host "Installing Laravel starter $Starter from $repository ($revision)"
-    Invoke-Compose @('build', 'app')
-    Invoke-Compose @('run', '--rm', '--no-deps', 'app', 'git', 'clone', '--depth', '1', '--branch', $revision, "https://github.com/$repository.git", '/var/www/html')
-    Invoke-Compose @('run', '--rm', '--no-deps', 'app', 'rm', '-rf', '/var/www/html/.git')
-    Invoke-Compose @('run', '--rm', '--no-deps', 'app', 'composer', 'install', '--no-interaction', '--prefer-dist', '--no-progress')
+    Invoke-Compose -Arguments @('build', 'app')
+    Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'git', 'clone', '--depth', '1', '--branch', $revision, "https://github.com/$repository.git", '/var/www/html')
+    Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'rm', '-rf', '/var/www/html/.git')
+    Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'composer', 'install', '--no-interaction', '--prefer-dist', '--no-progress')
 
     if ((Get-Content -LiteralPath 'app/composer.json' -Raw) -match '"laravel/sail"\s*:') {
-        Invoke-Compose @('run', '--rm', '--no-deps', 'app', 'composer', 'remove', 'laravel/sail', '--dev', '--no-interaction', '--no-progress')
+        Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'composer', 'remove', 'laravel/sail', '--dev', '--no-interaction', '--no-progress')
     }
 
     [System.IO.File]::WriteAllText(

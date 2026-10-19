@@ -28,8 +28,8 @@ try {
     $file = 'postgres-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.dump'
     $remote = '/tmp/' + $file
     try {
-        Invoke-Compose @('exec', '-T', 'postgres', 'pg_dump', '-Fc', '--no-owner', '--no-acl', '-U', $settings['DB_USERNAME'], '-d', $settings['DB_DATABASE'], '-f', $remote)
-        Invoke-Compose @('cp', ('postgres:' + $remote), ('backups/' + $file))
+        Invoke-Compose -Arguments @('exec', '-T', 'postgres', 'pg_dump', '-Fc', '--no-owner', '--no-acl', '-U', $settings['DB_USERNAME'], '-d', $settings['DB_DATABASE'], '-f', $remote)
+        Invoke-Compose -Arguments @('cp', ('postgres:' + $remote), ('backups/' + $file))
         if ((Get-Item -LiteralPath (Join-Path 'backups' $file)).Length -le 0) {
             throw 'The PostgreSQL backup is empty.'
         }

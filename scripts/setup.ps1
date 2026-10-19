@@ -18,16 +18,16 @@ try {
     & (Join-Path $PSScriptRoot 'bootstrap.ps1') -Starter $Starter
     & (Join-Path $PSScriptRoot 'configure-app.ps1')
 
-    Invoke-Compose @('up', '-d', '--build', 'postgres', 'mailpit', 'app', 'web')
+    Invoke-Compose -Arguments @('up', '-d', '--build', 'postgres', 'mailpit', 'app', 'web')
 
     $appEnv = Get-Content -LiteralPath 'app/.env'
     if (-not ($appEnv | Where-Object { $_ -match '^APP_KEY=.+$' })) {
-        Invoke-Compose @('exec', '-T', 'app', 'php', 'artisan', 'key:generate', '--force')
+        Invoke-Compose -Arguments @('exec', '-T', 'app', 'php', 'artisan', 'key:generate', '--force')
     }
 
-    Invoke-Compose @('exec', '-T', 'app', 'php', 'artisan', 'migrate', '--force')
-    Invoke-Compose @('--profile', 'dev', 'run', '--rm', '--no-deps', '--entrypoint', 'npm', 'node', 'install')
-    Invoke-Compose @('--profile', 'dev', 'up', '-d', 'node')
+    Invoke-Compose -Arguments @('exec', '-T', 'app', 'php', 'artisan', 'migrate', '--force')
+    Invoke-Compose -Arguments @('--profile', 'dev', 'run', '--rm', '--no-deps', '--entrypoint', 'npm', 'node', 'install')
+    Invoke-Compose -Arguments @('--profile', 'dev', 'up', '-d', 'node')
 
     $settings = @{}
     Get-Content -LiteralPath '.env' | ForEach-Object {
