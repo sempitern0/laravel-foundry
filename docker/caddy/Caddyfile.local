@@ -1,0 +1,7 @@
+{$LOCAL_DOMAIN} {
+    tls internal
+    encode zstd gzip
+    reverse_proxy web:80
+    header X-Content-Type-Options nosniff
+    header Referrer-Policy strict-origin-when-cross-origin
+}

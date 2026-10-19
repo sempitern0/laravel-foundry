@@ -1,0 +1,234 @@
+name: Template CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  unix-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate POSIX scripts
+        run: sh -n scripts/bootstrap.sh scripts/checkout-starter.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh scripts/tenancy-check.sh
+      - name: Enforce Sail-free generated applications
+        run: |
+          if [ -f app/composer.json ] && grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
+            echo "laravel/sail is prohibited by this Docker-first template."
+            exit 1
+          fi
+          if [ -f app/composer.lock ] && grep -q '"name": "laravel/sail"' app/composer.lock; then
+            echo "Remove laravel/sail from composer.lock."
+            exit 1
+          fi
+      - name: Validate Make recipes
+        run: |
+          make -n setup STARTER=svelte
+          make -n up
+          make -n up-wait
+          make -n start
+          make -n stop
+          make -n backup
+          make -n reset-project
+          make -n rebuild
+          make -n lint
+          make -n https-setup && make -n env-sync && make -n reset-project
+          make -n tenancy-check
+      - name: Ensure the template has no tracked application
+        run: |
+          if git ls-files app/ | grep -q .; then
+            echo "Generated app/ must not be committed to the template."
+            exit 1
+          fi
+          git check-ignore app/artisan
+      - name: Ensure the wizard precedes starter checkout
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for script, wizard, bootstrap in [
+              ('scripts/setup.sh', 'wizard.php', 'bootstrap.sh'),
+              ('scripts/setup.ps1', 'wizard.php', 'bootstrap.ps1'),
+          ]:
+              contents = Path(script).read_text()
+              assert contents.index(wizard) < contents.index(bootstrap), script
+          print('Wizard runs before bootstrap in both platforms')
+          PY
+      - name: Validate shared PHP wizard
+        run: |
+          php -l scripts/wizard.php
+          php -l scripts/configure-app.php
+          php -l scripts/env-sync.php
+      - name: Validate fast startup probes on PHP-FPM and Nginx
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          compose = Path("compose.yaml").read_text()
+          for name in ("app", "web"):
+              section = compose.split(f"  {name}:\n", 1)[1].split("\n  ", 1)[0]
+              assert "healthcheck:" in section, name
+              assert "start_interval: 2s" in section, name
+              assert "start_period: 45s" in section, name
+              assert "interval: 30s" in section, name
+              assert "timeout: 3s" in section, name
+          assert "app: {condition: service_started}" in compose
+          assert "web: {condition: service_started}" in compose
+          print("Fast probes and startup ordering validated")
+          PY
+      - name: Validate fast development proxy start without healthcheck chaining
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s = Path('compose.yaml').read_text()
+          web = s.split('\n  web:\n', 1)[1].split('\n  ', 1)[0]
+          caddy = s.split('\n  caddy-local:\n', 1)[1].split('\n  ', 1)[0]
+          assert 'app: {condition: service_started}' in web
+          assert 'web: {condition: service_started}' in caddy
+          assert 'healthcheck:' in web
+          assert 'start_interval: 2s' in web
+          make = Path('Makefile').read_text()
+          assert 'up-wait:' in make and '--wait --wait-timeout 120' in make
+          assert 'stop:' in make and 'start:' in make
+          PY
+      - name: Validate cleanup invariants
+        run: |
+          test ! -e scripts/destroy.ps1
+          test ! -e scripts/destroy.sh
+          test ! -e scripts/configure-app.ps1
+          test ! -e scripts/configure-app.sh
+          test ! -e docker/assets/Dockerfile
+          test ! -e docker/nginx/production.conf
+          test ! -e docker/php/Dockerfile.dockerignore
+          ! grep -Eq '^(destroy|down-detached|https-cert):' Makefile
+          ! grep -q 'production.conf' docker/nginx/Dockerfile
+      - name: Check provider guide navigation and no implicit cloud deployment
+        run: |
+          test -s docs/HOSTING_PROVIDERS.md
+          grep -q 'HOSTING_PROVIDERS.md' README.md
+          grep -q 'HOSTING_PROVIDERS.md' docs/DEPLOYMENT.md
+          grep -q 'HOSTING_PROVIDERS.md' AGENTS.md
+          ! grep -Eq '^(deploy-cloud|deploy-production|provision-vps):' Makefile
+      - name: Check staged and production environment contract
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("compose.production.yaml").read_text()
+          for val in ("APP_ENV_FILE", "DB_ENV_FILE", "CADDY_CONFIG_FILE",
+                      "PUBLIC_BIND_IP", "PUBLIC_HTTP_PORT", "PUBLIC_HTTPS_PORT",
+                      "$POSTGRES_USER", "$POSTGRES_DB"):
+              assert val in s, val
+          assert Path("docs/DEPLOYMENT.md").is_file()
+          assert "POSTGRES_USER=foundry" in Path("db.production.env.example").read_text()
+          assert "/deploy/*.env" in Path(".gitignore").read_text()
+          assert '$POSTGRES_USER' in s and '$POSTGRES_DB' in s
+          assert 'app-storage:/var/www/html/storage:ro' in s
+          assert 'alias /var/www/html/storage/app/public/' in Path('docker/nginx/site.conf').read_text()
+          dev=Path('compose.yaml').read_text()
+          assert '$MYSQL_ROOT_PASSWORD' in dev
+          PY
+      - name: Validate production Compose rendering for staging and local parity
+        run: |
+          cat > /tmp/foundry-staging.env <<'EOF'
+          PROJECT_NAME=foundry-ci-staging
+          APP_IMAGE=example.invalid/php:ci
+          WEB_IMAGE=example.invalid/web:ci
+          APP_DOMAIN=staging.example.com
+          APP_ENV_FILE=./app.production.env.example
+          DB_ENV_FILE=./db.production.env.example
+          EOF
+          cat > /tmp/foundry-local.env <<'EOF'
+          PROJECT_NAME=foundry-ci-local
+          APP_IMAGE=example.invalid/php:ci
+          WEB_IMAGE=example.invalid/web:ci
+          APP_DOMAIN=local.test
+          LOCAL_DOMAIN=local.test
+          CADDY_CONFIG_FILE=./docker/caddy/Caddyfile.local
+          APP_ENV_FILE=./app.production.env.example
+          DB_ENV_FILE=./db.production.env.example
+          PUBLIC_BIND_IP=127.0.0.1
+          PUBLIC_HTTP_PORT=8088
+          PUBLIC_HTTPS_PORT=8444
+          EOF
+          docker compose --env-file /tmp/foundry-staging.env -f compose.production.yaml config -q
+          docker compose --env-file /tmp/foundry-local.env -f compose.production.yaml config -q
+      - name: Validate SaaS opt-in and local wildcard Caddy routing
+        run: |
+          php -l scripts/wizard.php
+          sh -n scripts/tenancy-check.sh
+          test -s docs/SAAS.md
+          grep -q 'TENANCY_MODE' .env.example
+          grep -q 'TENANCY_MODE' scripts/wizard.php
+          grep -q 'Caddyfile.saas' scripts/wizard.php
+          grep -Fq '*.{$LOCAL_DOMAIN}' docker/caddy/Caddyfile.saas
+          grep -q 'tenancy-check:' Makefile
+          grep -q 'SAAS.md' README.md
+          docker compose config -q
+      - name: Validate Compose
+        run: docker compose config -q
+      - name: Build and smoke-test PHP development toolchain
+        run: |
+          docker compose build app composer node
+          docker compose run --rm --no-deps --user 0:0 composer sh -ec 'chown "$DEV_UID:$DEV_GID" /var/www/html/node_modules /tmp/npm-cache /tmp/composer'
+          docker compose run --rm --no-deps composer sh -ec 'php -v && composer --version && node --version && npm --version && touch /var/www/html/node_modules/.cache-write-test && touch /tmp/npm-cache/.cache-write-test && touch /tmp/composer/.cache-write-test'
+      - name: Forbid attribute-preserving copy onto Docker Desktop bind mounts
+        run: |
+          if grep -Eq '^[[:space:]]*cp[[:space:]]+-a([[:space:]]|$)' scripts/checkout-starter.sh; then
+            echo 'Use cp -R without -a; Docker Desktop may refuse metadata operations.'
+            exit 1
+          fi
+      - name: Test starter checkout with the mounted node_modules directory
+        run: |
+          docker compose run --rm --no-deps --entrypoint sh composer -ec '
+            repo=$(mktemp -d /tmp/letsgo-repo.XXXXXX)
+            git init -q -b main "$repo"
+            git -C "$repo" config user.name CI
+            git -C "$repo" config user.email ci@example.invalid
+            printf "#!/usr/bin/env php\n" > "$repo/artisan"
+            printf "{}\n" > "$repo/composer.json"
+            git -C "$repo" add .
+            git -C "$repo" commit -qm fixture
+            test -d /var/www/html/node_modules
+            sh /opt/letsgo/checkout-starter.sh main "$repo"
+            test -f /var/www/html/artisan
+            test -d /var/www/html/node_modules
+            test ! -e /var/www/html/.git
+          '
+      - name: Assert runtime excludes dev tools
+        run: |
+          docker compose run --rm --no-deps --entrypoint sh app -ec 'php-fpm -t && ! command -v composer && ! command -v npm && ! command -v node'
+      - name: Check Vite has PHP CLI for Wayfinder
+        run: |
+          docker compose --profile dev run --rm --no-deps --entrypoint sh node -ec 'php -v && node --version && npm --version && ! command -v composer'
+      - name: Verify shared dependencies and matching Linux libc
+        run: |
+          docker compose --profile dev run --rm --no-deps --entrypoint sh node -ec 'node --version && npm --version && test -f /var/www/html/node_modules/.cache-write-test && test -f /tmp/npm-cache/.cache-write-test'
+  powershell-scripts:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse all native Windows scripts
+        shell: powershell
+        run: |
+          $scripts = Get-ChildItem scripts -Filter '*.ps1'
+          foreach ($script in $scripts) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($script.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error "$($script.Name): $_" }
+              exit 1
+            }
+            Write-Host "Parsed: $($script.Name)"
+          }
+      - name: Validate prerequisites installer PowerShell syntax
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path scripts/prerequisites.ps1).Path, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count) { throw ($errors | Out-String) }
+      - name: Verify native Windows Make dispatch
+        shell: powershell
+        run: |
+          choco install make -y --no-progress
+          $dryRun = & make -n setup STARTER=svelte 2>&1 | Out-String
+          Write-Host $dryRun
+          if ($dryRun -notmatch 'powershell.exe' -or $dryRun -match '^sh scripts/setup.sh') { throw 'Windows setup must use PowerShell, not sh' }
