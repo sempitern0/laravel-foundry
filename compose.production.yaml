@@ -45,7 +45,7 @@ services:
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
       # Credentials live in db env_file, not necessarily in Compose host env.
-      test: ["CMD-SHELL", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
       timeout: 5s
       retries: 8

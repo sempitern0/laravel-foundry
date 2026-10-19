@@ -143,6 +143,8 @@ Choose local HTTPS in the setup wizard. For a custom name like `omapop.test`, ad
 
 On Windows use `make https-setup` to guide hostname setup and offer to trust the local Caddy CA after confirmation. You must trust the CA in your OS/browser to avoid certificate warnings. Firefox may use its own certificate settings. Caddy's `tls internal` certificates are **development-only**, not public ACME certificates. If port 443 is occupied, choose another `HTTPS_PORT` (e.g. 8443) and append it to the URL. The wizard configures `app/.env` `APP_URL` accordingly.
 
+Both HTTPS helpers retry certificate export up to ten times while Caddy initializes its local CA. Windows PowerShell 5.1 handles Docker progress output without treating it as a failed command; actual nonzero exit codes still fail setup. Certificate trust remains explicit.
+
 Existing installations keep their current `HTTPS_PORT` until you change it. For a pre-existing installation, change the root `.env` and Laravel `APP_URL`, recreate Caddy and clear Laravel's cached configuration.
 
 ## Environment and project lifecycle
