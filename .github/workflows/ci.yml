@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate POSIX scripts
-        run: sh -n scripts/bootstrap.sh scripts/checkout-starter.sh scripts/configure-app.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/destroy.sh
+        run: sh -n scripts/bootstrap.sh scripts/checkout-starter.sh scripts/configure-app.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/destroy.sh scripts/reset-project.sh
       - name: Enforce Sail-free generated applications
         run: |
           if [ -f app/composer.json ] && grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
@@ -21,7 +21,7 @@ jobs:
             exit 1
           fi
       - name: Validate Make recipes
-        run: make -n setup STARTER=svelte && make -n backup && make -n destroy
+        run: make -n setup STARTER=svelte && make -n backup && make -n destroy && make -n env-sync && make -n reset-project
       - name: Ensure the template has no tracked application
         run: |
           if git ls-files app/ | grep -q .; then
@@ -45,6 +45,7 @@ jobs:
         run: |
           php -l scripts/wizard.php
           php -l scripts/configure-app.php
+          php -l scripts/env-sync.php
       - name: Validate fast startup probes on PHP-FPM and Nginx
         run: |
           python3 - <<'PY'

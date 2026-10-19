@@ -16,6 +16,7 @@ try {
         Copy-Item -LiteralPath '.env.example' -Destination '.env'
     }
     Compose -Cmd @('build','composer')
+    Compose -Cmd @('run','--rm','--no-deps','composer','php','/opt/letsgo/env-sync.php','--root-only')
     Compose -Cmd @('run','--rm','--interactive','--no-deps','composer','php','/opt/letsgo/wizard.php')
     & (Join-Path $PSScriptRoot 'bootstrap.ps1') -Starter $Starter
     if (-not $?) { throw 'Bootstrap failed' }

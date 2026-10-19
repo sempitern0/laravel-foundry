@@ -5,6 +5,7 @@ cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 # suppress infrastructure questions. app/ can be empty at this point.
 [ -f .env ] || cp .env.example .env
 docker compose build composer
+docker compose run --rm --no-deps composer php /opt/letsgo/env-sync.php --root-only
 docker compose run --rm --interactive --no-deps composer php /opt/letsgo/wizard.php
 sh scripts/bootstrap.sh "${1:-}"
 docker compose run --rm --no-deps composer php /opt/letsgo/configure-app.php

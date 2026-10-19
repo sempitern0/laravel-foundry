@@ -193,3 +193,24 @@ docker compose ps
 ```
 
 Docker startup duration still depends on Windows filesystem performance and actual PHP/Nginx readiness. Expect **seconds rather than an artificial 40-second delay** on an otherwise warm Docker Desktop installation; this has not been timed on the Windows host.
+
+
+## Updating environment variables and resetting a generated app
+
+The version-controlled **root `.env.example` remains generic** by design; it must not be filled with real per-project credentials or names. A local `.env` is a separate ignored file. Run:
+
+```powershell
+make env-sync
+```
+
+The sync appends **only keys missing from the root `.env`**, using the current `.env.example` defaults. It preserves existing values, credentials, comments and custom variables. It does not update or expose production secrets; `app.production.env.example` and `db.production.env.example` remain independent deployment templates. Setup runs the root sync before the wizard. Existing `app/.env` is configured separately through the setup flow. Review newly inserted defaults, then change them through the wizard as needed.
+
+To **reset the generated project completely** while keeping the infrastructure template itself:
+
+```powershell
+make reset-project
+# Then initialize a new project:
+make setup STARTER=svelte
+```
+
+Reset requires an interactive confirmation with the **exact Compose project name**: `RESET <PROJECT_NAME>`. It stops containers, deletes that project's volumes (including databases, Redis and Caddy local CA), deletes ignored `app/`, the root `.env` and exported local CA files. This action is irreversible for data not backed up. It intentionally **preserves** `backups/` and `app-backups/`, all repository templates/scripts and shared Docker images. It does **not** modify Windows hosts entries or trusted root certificates; review and remove stale entries manually if appropriate. A new `make setup` recreates the default root `.env` and lets you choose different settings. Do not use this command merely to reconfigure a port or certificate.

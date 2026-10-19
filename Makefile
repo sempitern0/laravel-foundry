@@ -4,19 +4,21 @@ ifeq ($(OS),Windows_NT)
 SETUP_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup.ps1
 BACKUP_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/backup.ps1
 DESTROY_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/destroy.ps1
+RESET_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/reset-project.ps1
 HTTPS_SETUP_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/https-setup.ps1
 else
 SHELL := /bin/sh
 SETUP_SCRIPT := sh scripts/setup.sh
 BACKUP_SCRIPT := sh scripts/backup.sh
 DESTROY_SCRIPT := sh scripts/destroy.sh
+RESET_SCRIPT := sh scripts/reset-project.sh
 HTTPS_SETUP_SCRIPT := sh scripts/https-setup.sh
 endif
 
 .DEFAULT_GOAL := help
 DC := docker compose
 STARTER ?=
-.PHONY: help setup up up-detached down down-detached build rebuild restart logs ps shell artisan composer npm migrate test lint worker scheduler redis destroy config backup https-cert https-setup
+.PHONY: help setup up up-detached down down-detached build rebuild restart logs ps shell artisan composer npm migrate test lint worker scheduler redis destroy config backup https-cert https-setup env-sync reset-project
 
 help:
 	@echo "Laravel Let's Go - Docker-based, frontend-neutral Laravel template"
@@ -30,7 +32,7 @@ help:
 	@echo "  make rebuild                 Rebuild PHP image after Dockerfile changes"
 	@echo "  make artisan CMD='route:list' / composer CMD='require ...'"
 	@echo "  make npm CMD='run build' / migrate / test / lint"
-	@echo "  make worker / scheduler / redis / backup / destroy"\n\t@echo "  make https-setup              Configure HTTPS hosts and optional CA trust"
+	@echo "  make worker / scheduler / redis / backup / destroy"\n\t@echo "  make env-sync                 Add missing keys without overwriting local values"\n\t@echo "  make reset-project            Remove generated app and volumes; require confirmation"\n\t@echo "  make https-setup              Configure HTTPS hosts and optional CA trust"
 
 setup:
 	$(SETUP_SCRIPT) $(if $(strip $(STARTER)),$(if $(filter Windows_NT,$(OS)),-Starter "$(STARTER)","$(STARTER)"),)
@@ -105,3 +107,9 @@ https-cert:
 
 https-setup:
 	$(HTTPS_SETUP_SCRIPT)
+
+env-sync:
+	$(DC) run --rm --no-deps composer php /opt/letsgo/env-sync.php --root-only
+
+reset-project:
+	$(RESET_SCRIPT)
