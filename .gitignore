@@ -1,4 +1,5 @@
 /certs/
+/deploy/*.env
 /caddy-local-root.crt
 /app/
 /app-backups/

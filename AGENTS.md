@@ -139,3 +139,15 @@ make env-sync
 5. If changing Compose: validate `docker compose config -q`, run relevant shell/PowerShell lint and inspect profiles.
 6. No unrelated refactors, added dependencies without rationale, accidental secrets, generated source in template Git, or destructive cleanup.
 7. Report concise summary, files touched, behavior changed, tests actually run, unverified areas and any migration/deployment instructions.
+
+## Environment parity and releases
+
+- Read [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) before changing staging/production workflows.
+- Do not claim local dev is *identical* to production when using Vite HMR, debug mode, a different database engine or different queue/cache services. Verify a **production-parity run with release images**.
+- Commit migration history and Composer/npm lockfiles in the separate product repository. Do not version runtime secrets or generated `app/` in the infrastructure template.
+- Build once per commit; publish immutable PHP and web image tags/digests and promote **those exact artifacts** from staging to production.
+- Do not copy live production secrets, raw data or persisted volumes into local/staging. Use safe synthetic or appropriately sanitized fixtures.
+- Give staging and production unique project names, env files, APP_KEY and independent database/storage volumes; never run `down -v` against either during routine deployments.
+- Ensure staging and production use compatible PHP/DB major versions, extensions, schemas, queues, cache/session behavior, storage and trusted TLS.
+- Plan migrations for forwards/backwards compatibility. A code/image rollback does not automatically restore schema or data.
+- Preserve external backup/restore procedures and require explicit authorization for production migrations, disruptive actions and secret changes.

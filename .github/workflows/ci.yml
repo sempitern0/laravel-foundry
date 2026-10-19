@@ -98,6 +98,44 @@ jobs:
           test ! -e docker/php/Dockerfile.dockerignore
           ! grep -Eq '^(destroy|down-detached|https-cert):' Makefile
           ! grep -q 'production.conf' docker/nginx/Dockerfile
+      - name: Check staged and production environment contract
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("compose.production.yaml").read_text()
+          for val in ("APP_ENV_FILE", "DB_ENV_FILE", "CADDY_CONFIG_FILE",
+                      "PUBLIC_BIND_IP", "PUBLIC_HTTP_PORT", "PUBLIC_HTTPS_PORT",
+                      "$POSTGRES_USER", "$POSTGRES_DB"):
+              assert val in s, val
+          assert Path("docs/DEPLOYMENT.md").is_file()
+          assert "POSTGRES_USER=foundry" in Path("db.production.env.example").read_text()
+          assert "/deploy/*.env" in Path(".gitignore").read_text()
+          PY
+      - name: Validate production Compose rendering for staging and local parity
+        run: |
+          cat > /tmp/foundry-staging.env <<'EOF'
+          PROJECT_NAME=foundry-ci-staging
+          APP_IMAGE=example.invalid/php:ci
+          WEB_IMAGE=example.invalid/web:ci
+          APP_DOMAIN=staging.example.com
+          APP_ENV_FILE=./app.production.env.example
+          DB_ENV_FILE=./db.production.env.example
+          EOF
+          cat > /tmp/foundry-local.env <<'EOF'
+          PROJECT_NAME=foundry-ci-local
+          APP_IMAGE=example.invalid/php:ci
+          WEB_IMAGE=example.invalid/web:ci
+          APP_DOMAIN=local.test
+          LOCAL_DOMAIN=local.test
+          CADDY_CONFIG_FILE=./docker/caddy/Caddyfile.local
+          APP_ENV_FILE=./app.production.env.example
+          DB_ENV_FILE=./db.production.env.example
+          PUBLIC_BIND_IP=127.0.0.1
+          PUBLIC_HTTP_PORT=8088
+          PUBLIC_HTTPS_PORT=8444
+          EOF
+          docker compose --env-file /tmp/foundry-staging.env -f compose.production.yaml config -q
+          docker compose --env-file /tmp/foundry-local.env -f compose.production.yaml config -q
       - name: Validate Compose
         run: docker compose config -q
       - name: Build and smoke-test PHP development toolchain

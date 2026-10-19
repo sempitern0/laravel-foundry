@@ -6,11 +6,11 @@
 
 **A Docker-first, frontend-neutral Laravel development template.**
 
-[![CI](https://github.com/sempitern0/laravel-letsgo/actions/workflows/ci.yml/badge.svg)](https://github.com/sempitern0/laravel-letsgo/actions/workflows/ci.yml)
+[![CI](https://github.com/sempitern0/laravel-foundry/actions/workflows/ci.yml/badge.svg)](https://github.com/sempitern0/laravel-foundry/actions/workflows/ci.yml)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docker Compose](https://img.shields.io/badge/orchestration-Docker%20Compose-2496ED?logo=docker&logoColor=white)](compose.yaml)
 [![PowerShell + POSIX](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-555)](#requirements)
-[![Status: Preview](https://img.shields.io/badge/status-preview-yellow)](https://github.com/sempitern0/laravel-letsgo/pull/1)
+[![Status: Preview](https://img.shields.io/badge/status-preview-yellow)](https://github.com/sempitern0/laravel-foundry/pull/1)
 
 **Bring your own Laravel starter. No Sail, Herd, required SaaS, or paid local database.**
 
@@ -58,7 +58,7 @@ The first command only audits prerequisites; the second **asks for consent** bef
 **No Make required:** after Docker Desktop is working, you may use `.\scripts\setup.ps1 -Starter svelte` directly from PowerShell. The project does not silently alter the host system during `make setup`.
 
 ```powershell
-git clone https://github.com/sempitern0/laravel-letsgo.git my-laravel-app
+git clone https://github.com/sempitern0/laravel-foundry.git my-laravel-app
 cd my-laravel-app
 make setup STARTER=svelte
 ```
@@ -162,14 +162,21 @@ make setup STARTER=livewire
 
 Reset requires typing `RESET <PROJECT_NAME>`. It removes the generated `app/`, root `.env`, and **all volumes of that Compose project** (including database data and Caddy CA). It **preserves** `backups/`, `app-backups/`, the template files, and does not revoke system certificate trust or modify hosts. **Back up data before resetting.**
 
-## Staging, production, and release boundaries
+## Local → staging → production: deploying the same tested release
 
-The repository provides a `compose.production.yaml` reference with Caddy, Nginx, PHP-FPM, PostgreSQL, worker and scheduler, and a tag-triggered GitHub Actions release workflow that publishes versioned images to GHCR **only once the generated application source and lockfiles have been committed to an actual application repository**.
+**[Deployment and environment-parity guide (step-by-step) →](docs/DEPLOYMENT.md)**
+
+| Environment | How it runs | What it verifies |
+| --- | --- | --- |
+| Development | `compose.yaml`, bind-mounted code and development tools | Fast editing and automated tests |
+| Local production-parity | `compose.production.yaml`, release images and local-only Caddy | The real PHP/Nginx artifact, PostgreSQL, production configuration |
+| Staging | **Same immutable image versions**, separate database, secrets, real TLS | Migrations, integrations, smoke tests |
+| Production | **Promote the exact images already checked in staging** | Live workload |
+
+**“Develop locally like production” means reproducible runtime and behavior, not identical secrets/data.** Match PHP extensions, database **engine/major version**, Composer/npm lockfiles, asset build, migrations and relevant infrastructure features. Keep `APP_KEY`, credentials, user data, email/payment gateways, domains and volumes separate. Local development can use Vite/debug tools, but verify the candidate release through the **same production Compose images** before promotion.
 
 > [!WARNING]
-> The template intentionally ignores `app/`. Therefore its release workflow **cannot** publish a real application image directly from this pristine template. For a product, create a separate repo that tracks Laravel source, `composer.lock` and `package-lock.json`, while ignoring `vendor/`, `node_modules/` and secrets. Staging and production require separate secrets, database volumes, DNS, external encrypted backups, restore tests, observability and tested deployments. The provided production Compose currently uses PostgreSQL; it is not automatically rewritten to match local MariaDB/SQLite choices.
-
-The local `make backup` command is **not** a disaster-recovery plan. Store encrypted database and file backups outside the VPS/host and routinely verify restoration.
+> `app/` is intentionally ignored by this infrastructure template. The release workflow can publish application images **only in a separate product repository that tracks the generated application code and lockfiles**. Current production Compose supports PostgreSQL; local MariaDB/MySQL/SQLite choices do **not** imply production parity until that topology is explicitly adapted. Production backups, restore drills, deployment approvals and rollback plans are mandatory and are not automated by this template.
 
 ## Troubleshooting
 
@@ -194,7 +201,7 @@ Released under the [MIT License](LICENSE). © 2026 sempitern0.
 
 ### Naming and compatibility
 
-The display name is **Laravel Foundry**. The upstream GitHub repository is still named `laravel-letsgo` until its owner explicitly renames it. Existing Docker projects retain their custom `PROJECT_NAME` and their local `.env`; new installations default to `foundry`. A rename of the GitHub repository is **not** necessary to use the rebranded template.
+The display name is **Laravel Foundry**. The upstream GitHub repository has been renamed to `laravel-foundry`. Existing Docker projects retain their custom `PROJECT_NAME` and their local `.env`; new installations default to `foundry`. Existing clones may retain the former remote URL; update it to `https://github.com/sempitern0/laravel-foundry.git` when convenient.
 
 The **runtime setup** uses `scripts/configure-app.php` as its single Laravel environment configurator. Historical shell/PowerShell configurators and the old `destroy` volume-only scripts have been removed; use `make reset-project` (with explicit confirmation) for a complete reset. For production releases `docker/php/Production.Dockerfile` remains separate from the development toolbox.
 
