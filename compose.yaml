@@ -46,9 +46,12 @@ services:
     command: php-fpm
     healthcheck:
       test: ["CMD", "php-fpm", "-t"]
-      interval: 20s
+      # Fast startup detection without continuously polling every 2 seconds.
+      start_period: 45s
+      start_interval: 2s
+      interval: 30s
       retries: 3
-      timeout: 10s
+      timeout: 3s
   composer:
     <<: *tooling
     profiles: [tools]
@@ -63,9 +66,11 @@ services:
       app: {condition: service_healthy}
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz"]
-      interval: 20s
-      retries: 4
-      timeout: 5s
+      start_period: 45s
+      start_interval: 2s
+      interval: 30s
+      retries: 3
+      timeout: 3s
     networks: [internal]
   caddy-local:
     image: caddy:2-alpine

@@ -178,3 +178,18 @@ docker compose build node
 docker compose --profile dev run --rm --no-deps --entrypoint npm node run build
 make up-detached
 ```
+
+
+### Faster healthchecks on Docker Desktop
+
+The development Compose file uses Docker's `start_interval: 2s` for **PHP-FPM** and **Nginx** with a `start_period: 45s` grace window. `start_period` is **not a mandatory wait**: if a healthcheck passes after two seconds, Compose proceeds immediately to the next dependency. Once healthy, checks run every 30 seconds to avoid continuous load. This removes the previous sequential 20s + 20s polling penalty without removing readiness gates for Caddy. This requires **Docker Engine 25+** and **Docker Compose v2.20.2+** for `start_interval`.
+
+To apply the new healthcheck definitions (without removing your database volumes):
+
+```powershell
+git pull --ff-only
+docker compose up -d --force-recreate app web caddy-local
+docker compose ps
+```
+
+Docker startup duration still depends on Windows filesystem performance and actual PHP/Nginx readiness. Expect **seconds rather than an artificial 40-second delay** on an otherwise warm Docker Desktop installation; this has not been timed on the Windows host.
