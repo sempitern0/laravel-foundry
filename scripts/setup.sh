@@ -1,19 +1,25 @@
 #!/usr/bin/env sh
 set -eu
 cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-
 sh scripts/bootstrap.sh "${1:-}"
-sh scripts/configure-app.sh
-docker compose up -d postgres mailpit app web
+# Share one interactive wizard across POSIX and PowerShell.
+docker compose run --rm --no-deps app php /opt/letsgo/wizard.php
+docker compose run --rm --no-deps app php /opt/letsgo/configure-app.php
+
+db=$(sed -n 's/^DB_ENGINE=//p' .env | tr -d '"')
+https=$(sed -n 's/^HTTPS_ENABLED=//p' .env | tr -d '"')
+if [ "$db" = "postgres" ]; then docker compose up -d postgres; fi
+if [ "$db" = "mariadb" ]; then docker compose up -d mariadb; fi
+docker compose up -d app web
 
 if ! grep -Eq '^APP_KEY=.+$' app/.env; then
   docker compose exec -T app php artisan key:generate --force
 fi
-
 docker compose exec -T app php artisan migrate --force
 docker compose --profile dev run --rm --no-deps --entrypoint sh node /opt/letsgo/npm-ensure.sh
-docker compose --profile dev up -d node
-
-printf '\nApplication: http://localhost:%s\nMailpit: http://localhost:%s\n' \
-  "$(sed -n 's/^HTTP_PORT=//p' .env | head -n 1)" \
-  "$(sed -n 's/^MAILPIT_PORT=//p' .env | head -n 1)"
+if [ "$https" = "1" ]; then
+  docker compose --profile dev run --rm --no-deps --entrypoint npm node run build
+  rm -f app/public/hot
+fi
+docker compose up -d
+docker compose ps

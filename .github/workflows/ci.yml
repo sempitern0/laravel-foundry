@@ -29,6 +29,10 @@ jobs:
             exit 1
           fi
           git check-ignore app/artisan
+      - name: Validate shared PHP wizard
+        run: |
+          php -l scripts/wizard.php
+          php -l scripts/configure-app.php
       - name: Validate Compose
         run: docker compose config -q
       - name: Build and smoke-test PHP development toolchain

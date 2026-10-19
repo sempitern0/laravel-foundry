@@ -41,6 +41,28 @@ Without a STARTER option, an interactive selection menu appears. In non-interact
 
 **Important:** the initial setup downloads the chosen official Laravel starter into `app/`, **removes Laravel Sail from composer.json before the first `composer install`**, then installs Composer and npm dependencies in Docker, sets up PostgreSQL and Mailpit, generates a missing APP_KEY and runs Laravel migrations. Internet access is needed for the initial downloads.
 
+## Interactive infrastructure configuration
+
+After selecting a Laravel starter, one PHP wizard (running **inside Docker**, so both PowerShell and Unix use identical questions) asks for the application/container project name, PostgreSQL/MariaDB/SQLite, queue (sync/database/Redis), mail (Mailpit/log/custom SMTP), optional Pgweb/Adminer, and custom `.test` HTTPS hostname. All these options are written to the ignored root `.env` as Compose profiles and propagated to `app/.env`.
+
+- **Database:** PostgreSQL is the default; MariaDB and SQLite are optional. Existing database volumes are not destroyed automatically when changing engines; migrate or back up data before changing engines.
+- **Queues:** sync requires no worker; database and Redis enable the worker automatically. Redis starts only when chosen.
+- **Mail:** Mailpit for development, log or custom SMTP. Mailpit UI is exposed on http://localhost:8025 when selected.
+- **DB GUI:** Pgweb for PostgreSQL or Adminer for MariaDB (default port http://localhost:8081). SQLite deliberately has no remote DB GUI.
+- **Caddy HTTPS:** opt in, default `https://yourname.test:8443`, using `tls internal`. The wizard disables Vite's live server for HTTPS and builds static assets to avoid mixed content. On ordinary HTTP, Vite HMR remains enabled.
+
+### Local HTTPS and custom domain
+
+When enabling HTTPS, the wizard prints the hostname. Add it to your OS `hosts` file, for example:
+
+```text
+127.0.0.1 myapp.test
+```
+
+Windows: edit `C:\\Windows\\System32\\drivers\\etc\\hosts` as Administrator. Linux/macOS: edit `/etc/hosts` with appropriate privileges. Start with `make up-detached` or run `make setup`, then visit `https://myapp.test:8443`. The Caddy local CA certificate is available through `make https-cert`. **Inspect it before importing into your OS/browser trusted-root store.** On Windows, install the inspected root CA into Current User → Trusted Root Certification Authorities. Restart your browser. Use this CA only for local development. The port is 8443 to avoid requiring administrator access or conflicting with other software on port 443.
+
+`http://localhost:8080/healthz` should return `ok`. If Laravel routes fail, run `docker compose logs web app` and `docker compose exec app php artisan route:list` before changing domains.
+
 ### Recovering from a partially completed setup
 
 If Composer stopped with `artisan install:features` / `npm: not found`, **do not delete `app/` or reset database volumes**. Update this template branch and rerun `make setup STARTER=svelte` (or the original starter). Setup now rebuilds the PHP dev image and detects incomplete bootstrap via `app/.letsgo-starter`; it reruns Composer and explicitly replays the feature-install hook when needed, even if `vendor/autoload.php` already exists.
@@ -68,7 +90,10 @@ The `setup` command detects whether Composer has already installed an intact dep
 ## Daily development (PowerShell and Unix)
 
 ```sh
-make up
+make up                 # foreground logs
+make up-detached        # background
+make down               # stop stack without deleting volumes
+make down-detached      # alias for down (Compose down is nonblocking)
 make rebuild              # Only after changing the Dockerfile/images
 make down
 make logs
