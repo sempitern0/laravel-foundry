@@ -9,7 +9,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate POSIX scripts
-        run: sh -n scripts/bootstrap.sh scripts/checkout-starter.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh scripts/tenancy-check.sh
+        run: sh -n scripts/https-setup.sh scripts/bootstrap.sh scripts/checkout-starter.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh scripts/tenancy-check.sh
+      - name: Test HTTPS certificate export retries
+        run: python3 tests/https-export.py
+      - name: Test container healthcheck variable interpolation
+        run: python3 tests/compose-healthchecks.py
       - name: Enforce Sail-free generated applications
         run: |
           if [ -f app/composer.json ] && grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
@@ -218,6 +222,9 @@ jobs:
             }
             Write-Host "Parsed: $($script.Name)"
           }
+      - name: Test native Compose output and exit codes on Windows PowerShell 5.1
+        shell: powershell
+        run: ./tests/https-compose.ps1
       - name: Validate prerequisites installer PowerShell syntax
         shell: powershell
         run: |

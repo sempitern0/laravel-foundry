@@ -2,6 +2,17 @@
 param([switch]$SkipHosts, [switch]$SkipTrust)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
+function Invoke-Compose {
+    param([string[]]$Arguments, [switch]$Quiet)
+    $previous=$ErrorActionPreference
+    try {
+        # Windows PowerShell 5.1 treats native stderr as an error record.
+        $ErrorActionPreference='Continue'
+        if ($Quiet) { & docker compose @Arguments 2>$null | Out-Null }
+        else { & docker compose @Arguments | Out-Host }
+        return [int]$LASTEXITCODE
+    } finally { $ErrorActionPreference=$previous }
+}
 $root=Split-Path -Parent $PSScriptRoot
 Push-Location -LiteralPath $root
 try {
@@ -39,15 +50,15 @@ try {
             }
         }
     }
-    & docker compose --profile https up -d caddy-local
-    if($LASTEXITCODE -ne 0) { throw 'Caddy failed to start. Check whether port 443 is already occupied.' }
+    $upCode=Invoke-Compose -Arguments @('--profile','https','up','-d','caddy-local')
+    if($upCode -ne 0) { throw 'Caddy failed to start. Check whether port 443 is already occupied.' }
     $certDir=Join-Path $root 'certs'
     if(-not (Test-Path -LiteralPath $certDir)) { New-Item -ItemType Directory -Path $certDir | Out-Null }
     $cert=Join-Path $certDir 'caddy-local-root.crt'
     $found=$false
     for($attempt=0;$attempt -lt 10;$attempt++) {
-        & docker compose --profile https cp 'caddy-local:/data/caddy/pki/authorities/local/root.crt' $cert 2>$null
-        if($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $cert)) { $found=$true; break }
+        $copyCode=Invoke-Compose -Arguments @('--profile','https','cp','caddy-local:/data/caddy/pki/authorities/local/root.crt',$cert) -Quiet
+        if($copyCode -eq 0 -and (Test-Path -LiteralPath $cert)) { $found=$true; break }
         Start-Sleep -Seconds 1
     }
     if(-not $found) { throw 'Caddy root certificate not available. Inspect docker compose logs caddy-local.' }
