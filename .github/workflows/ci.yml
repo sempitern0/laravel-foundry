@@ -10,6 +10,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate POSIX scripts
         run: sh -n scripts/bootstrap.sh scripts/configure-app.sh scripts/setup.sh scripts/backup.sh scripts/destroy.sh
+      - name: Enforce Sail-free generated applications
+        run: |
+          if [ -f app/composer.json ] && grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
+            echo "laravel/sail is prohibited by this Docker-first template."
+            exit 1
+          fi
+          if [ -f app/composer.lock ] && grep -q '"name": "laravel/sail"' app/composer.lock; then
+            echo "Remove laravel/sail from composer.lock."
+            exit 1
+          fi
       - name: Validate Make recipes
         run: make -n setup STARTER=svelte && make -n backup && make -n destroy
       - name: Validate Compose

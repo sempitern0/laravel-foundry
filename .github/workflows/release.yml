@@ -16,6 +16,16 @@ jobs:
             echo "Generate and commit a Laravel starter with make setup before releasing."
             exit 1
           }
+      - name: Enforce Sail-free app
+        run: |
+          if grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
+            echo "Remove Laravel Sail from composer.json before releasing."
+            exit 1
+          fi
+          if grep -q '"name": "laravel/sail"' app/composer.lock; then
+            echo "Remove Laravel Sail from composer.lock before releasing."
+            exit 1
+          fi
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'

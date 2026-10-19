@@ -39,7 +39,13 @@ sh scripts/setup.sh svelte
 
 Without a STARTER option, an interactive selection menu appears. In non-interactive execution, plain Laravel is used by default. Setup is designed to be repeatable: it preserves an existing `app/artisan` and does not silently change frontend. When creating a new application, use a fresh template checkout rather than deleting code.
 
-**Important:** the initial setup downloads the chosen official Laravel starter into `app/`, installs Composer and npm dependencies in Docker, removes Sail if present, sets up PostgreSQL and Mailpit, generates a missing APP_KEY and runs Laravel migrations. Internet access is needed for the initial downloads.
+**Important:** the initial setup downloads the chosen official Laravel starter into `app/`, **removes Laravel Sail from composer.json before the first `composer install`**, then installs Composer and npm dependencies in Docker, sets up PostgreSQL and Mailpit, generates a missing APP_KEY and runs Laravel migrations. Internet access is needed for the initial downloads.
+
+### Laravel Sail policy
+
+The official Svelte, React, Vue and Livewire starters currently declare `laravel/sail` as a dev dependency. This template deliberately uses its own Compose files, so it strips Sail **before dependency resolution** with `composer remove laravel/sail --dev --no-update --no-scripts --no-plugins`. The generated `composer.lock` therefore does not include Sail. If an existing initialized application still declares Sail, rerunning `make setup` removes it and regenerates the lockfile through Composer. Both PowerShell and POSIX shell bootstrap scripts enforce this rule. CI/release checks reject a committed application containing Sail.
+
+This is a **setup-time cleanup and CI guard, not a Composer `post-install-cmd` hook**: Composer hooks that modify their own dependency graph can cause recursive or inconsistent installs. If you add Sail manually later, CI will flag it and `make setup` can reconcile your application.
 
 ## Daily development (PowerShell and Unix)
 

@@ -39,6 +39,11 @@ esac
 
 if [ -f app/artisan ]; then
   echo "Existing Laravel app found. Preserving its code and frontend."
+  if grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
+    echo "Removing unwanted Laravel Sail from existing app (and updating composer.lock)."
+    docker compose build app
+    docker compose run --rm --no-deps app composer remove laravel/sail --dev --no-interaction --no-progress
+  fi
   if [ ! -f app/vendor/autoload.php ]; then
     docker compose build app
     docker compose run --rm --no-deps app composer install --no-interaction --prefer-dist --no-progress
@@ -56,9 +61,12 @@ echo "Installing Laravel starter $starter from $repository ($revision)"
 docker compose build app
 docker compose run --rm --no-deps app git clone --depth 1 --branch "$revision" "https://github.com/$repository.git" /var/www/html
 docker compose run --rm --no-deps app rm -rf /var/www/html/.git
-docker compose run --rm --no-deps app composer install --no-interaction --prefer-dist --no-progress
-if grep -q '"laravel/sail"' app/composer.json; then
-  docker compose run --rm --no-deps app composer remove laravel/sail --dev --no-interaction --no-progress
+# Fresh official starter repositories have no composer.lock. Drop Sail from
+# composer.json before dependency resolution so it is never downloaded or locked.
+if grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
+  echo "Excluding Laravel Sail before Composer installs dependencies."
+  docker compose run --rm --no-deps app composer remove laravel/sail --dev --no-update --no-scripts --no-plugins --no-interaction --no-progress
 fi
+docker compose run --rm --no-deps app composer install --no-interaction --prefer-dist --no-progress
 printf '%s\n' "$starter" > app/.letsgo-starter
 echo "Laravel scaffold ready."

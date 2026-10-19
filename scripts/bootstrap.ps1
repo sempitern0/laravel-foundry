@@ -64,6 +64,11 @@ try {
 
     if (Test-Path -LiteralPath 'app/artisan') {
         Write-Host 'Existing Laravel app found. Preserving its code and frontend.'
+        if ((Get-Content -LiteralPath 'app/composer.json' -Raw) -match '"laravel/sail"\s*:') {
+            Write-Host 'Removing unwanted Laravel Sail from existing app (and updating composer.lock).'
+            Invoke-Compose -Arguments @('build', 'app')
+            Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'composer', 'remove', 'laravel/sail', '--dev', '--no-interaction', '--no-progress')
+        }
         if (-not (Test-Path -LiteralPath 'app/vendor/autoload.php')) {
             Invoke-Compose -Arguments @('build', 'app')
             Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'composer', 'install', '--no-interaction', '--prefer-dist', '--no-progress')
@@ -82,11 +87,13 @@ try {
     Invoke-Compose -Arguments @('build', 'app')
     Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'git', 'clone', '--depth', '1', '--branch', $revision, "https://github.com/$repository.git", '/var/www/html')
     Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'rm', '-rf', '/var/www/html/.git')
-    Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'composer', 'install', '--no-interaction', '--prefer-dist', '--no-progress')
-
+    # Exclude Sail from composer.json before dependency resolution and lockfile creation.
     if ((Get-Content -LiteralPath 'app/composer.json' -Raw) -match '"laravel/sail"\s*:') {
-        Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'composer', 'remove', 'laravel/sail', '--dev', '--no-interaction', '--no-progress')
+        Write-Host 'Excluding Laravel Sail before Composer installs dependencies.'
+        Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'composer', 'remove', 'laravel/sail', '--dev', '--no-update', '--no-scripts', '--no-plugins', '--no-interaction', '--no-progress')
     }
+
+    Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'app', 'composer', 'install', '--no-interaction', '--prefer-dist', '--no-progress')
 
     [System.IO.File]::WriteAllText(
         (Join-Path (Get-Location).Path 'app/.letsgo-starter'),
