@@ -24,7 +24,7 @@ help:
 	@echo "  make setup STARTER=react     React + Inertia"
 	@echo "  make setup STARTER=livewire  Livewire"
 	@echo "  make setup STARTER=laravel   Plain Laravel"
-	@echo "  make up / down / ps / logs   Container management\n\t@echo "  make rebuild                 Rebuild PHP image after Dockerfile changes""
+	@echo "  make up / down / ps / logs   Container management"\n\t@echo "  make rebuild                 Rebuild PHP image after Dockerfile changes"
 	@echo "  make artisan CMD='route:list' / composer CMD='require ...'"
 	@echo "  make npm CMD='run build' / migrate / test / lint"
 	@echo "  make worker / scheduler / redis / backup / destroy"

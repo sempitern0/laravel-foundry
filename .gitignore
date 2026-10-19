@@ -1,3 +1,5 @@
+/app/
+/app-backups/
 .env
 /app/.env
 /app/.env.*

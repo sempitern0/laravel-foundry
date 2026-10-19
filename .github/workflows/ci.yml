@@ -22,6 +22,13 @@ jobs:
           fi
       - name: Validate Make recipes
         run: make -n setup STARTER=svelte && make -n backup && make -n destroy
+      - name: Ensure the template has no tracked application
+        run: |
+          if git ls-files app/ | grep -q .; then
+            echo "Generated app/ must not be committed to the template."
+            exit 1
+          fi
+          git check-ignore app/artisan
       - name: Validate Compose
         run: docker compose config -q
       - name: Build and smoke-test PHP development toolchain

@@ -37,6 +37,28 @@ case "$starter" in
   *) echo "Unknown starter: $starter (laravel|svelte|vue|react|livewire)" >&2; exit 2 ;;
 esac
 
+if [ -d app ] && [ -n "$(ls -A app 2>/dev/null)" ]; then
+  if [ ! -t 0 ]; then
+    echo "Existing app/ found: interactive keep/replace selection required." >&2
+    exit 2
+  fi
+  printf 'Existing app/: [K]eep or [R]eplace (archive existing files)? '
+  IFS= read -r choice || exit 2
+  case "$choice" in
+    ""|K|k) echo "Keeping app/." ;;
+    R|r)
+      archive="app-backups/app-$(date +%Y%m%d-%H%M%S)"
+      mkdir -p app-backups
+      [ ! -e "$archive" ] || { echo "Archive already exists" >&2; exit 1; }
+      docker compose --profile dev --profile workers down --remove-orphans
+      mv app "$archive"
+      mkdir app
+      echo "Previous app archived at $archive"
+      ;;
+    *) echo "Cancelled; no changes." >&2; exit 2 ;;
+  esac
+fi
+
 if [ -f app/artisan ]; then
   echo "Existing Laravel app found. Preserving its code and frontend."
   # Always rebuild on setup: this is essential when a previously built PHP

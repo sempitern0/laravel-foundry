@@ -62,6 +62,26 @@ try {
         default { throw "Unknown starter '$Starter'. Valid: laravel, svelte, vue, react, livewire." }
     }
 
+    if ((Test-Path -LiteralPath 'app') -and @(Get-ChildItem -LiteralPath 'app' -Force).Count -gt 0) {
+        if ([Console]::IsInputRedirected) { throw 'Existing app/: an interactive choice is required.' }
+        $choice = Read-Host 'Existing app/: [K]eep or [R]eplace (archive existing files)'
+        switch ($choice.ToUpperInvariant()) {
+            { $_ -in @('', 'K') } { Write-Host 'Keeping existing app/.'; break }
+            'R' {
+                $parent = Join-Path (Get-Location).Path 'app-backups'
+                if (-not (Test-Path -LiteralPath $parent)) { New-Item -ItemType Directory -Path $parent | Out-Null }
+                $archive = Join-Path $parent ('app-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+                if (Test-Path -LiteralPath $archive) { throw "Archive already exists: $archive" }
+                Invoke-Compose -Arguments @('--profile', 'dev', '--profile', 'workers', 'down', '--remove-orphans')
+                Move-Item -LiteralPath 'app' -Destination $archive -ErrorAction Stop
+                New-Item -ItemType Directory -Path 'app' | Out-Null
+                Write-Host "Previous app archived at $archive"
+                break
+            }
+            default { throw 'Cancelled; no changes.' }
+        }
+    }
+
     if (Test-Path -LiteralPath 'app/artisan') {
         Write-Host 'Existing Laravel app found. Preserving its code and frontend.'
         # A previous setup might have failed in Composer's post-update-cmd

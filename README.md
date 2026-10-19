@@ -103,9 +103,13 @@ Local site: http://localhost:8080; Mailpit: http://localhost:8025. Node/Vite is 
 - The PostgreSQL backup uses `pg_dump -Fc` inside the container followed by `docker compose cp`, avoiding PowerShell 5.1 redirection corrupting binary or text encoding.
 - Do not execute `./scripts/*.sh` directly in Windows PowerShell. Use the `.ps1` versions.
 
-### Source versioning
+### Template isolation and existing installations
 
-Commit your initialized `app/` directory, `composer.lock` and `package-lock.json` into the new product's repository. The root `.gitignore` protects `app/.env`, dependencies and generated assets. For each new product, initialize from an independent copy of this template.
+The template **does not track `app/`**. Its root `.gitignore` excludes the entire generated folder. Any generated application is private to your local checkout. When `make setup` finds a nonempty `app/`, it asks whether to keep its files (default) or replace them. Replacing stops app containers and **moves** the directory to `app-backups/app-YYYYMMDD-HHMMSS` before generating a new app. It does not delete Docker volumes or reset PostgreSQL. In noninteractive runs, setup refuses to overwrite anything.
+
+The backups under `app-backups/` are local archives, **not** offsite backups; do not delete them until verified. Database migrations can change existing database schemas; replacing source code does not reset the database.
+
+For real product repositories, deliberately remove `/app/` from the root ignore file and commit the app and lockfiles (excluding the app's secrets and dependencies). This repository remains only an infrastructure template. The development Dockerfile context excludes `app/`; release builds use a separate production Dockerfile context rule to include source only in your application repository.
 
 ## Staging and production
 
