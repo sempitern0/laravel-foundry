@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate POSIX scripts
-        run: sh -n scripts/bootstrap.sh scripts/checkout-starter.sh scripts/configure-app.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh scripts/tenancy-check.sh
+        run: sh -n scripts/bootstrap.sh scripts/checkout-starter.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh scripts/tenancy-check.sh
       - name: Enforce Sail-free generated applications
         run: |
           if [ -f app/composer.json ] && grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
@@ -118,6 +118,11 @@ jobs:
           assert Path("docs/DEPLOYMENT.md").is_file()
           assert "POSTGRES_USER=foundry" in Path("db.production.env.example").read_text()
           assert "/deploy/*.env" in Path(".gitignore").read_text()
+          assert '$POSTGRES_USER' in s and '$POSTGRES_DB' in s
+          assert 'app-storage:/var/www/html/storage:ro' in s
+          assert 'alias /var/www/html/storage/app/public/' in Path('docker/nginx/site.conf').read_text()
+          dev=Path('compose.yaml').read_text()
+          assert '$MYSQL_ROOT_PASSWORD' in dev
           PY
       - name: Validate production Compose rendering for staging and local parity
         run: |

@@ -33,10 +33,10 @@ try {
     foreach ($line in Get-Content '.env') {
         if ($line -match '^([A-Z][A-Z0-9_]*)=(.*)$') { $config[$Matches[1]]=$Matches[2].Trim('"') }
     }
-    if ($config['DB_ENGINE'] -eq 'postgres') { Compose -Cmd @('up','-d','postgres') }
-    if ($config['DB_ENGINE'] -eq 'mariadb') { Compose -Cmd @('up','-d','mariadb') }
-    if ($config['DB_ENGINE'] -eq 'mysql') { Compose -Cmd @('up','-d','mysql') }
-    Compose -Cmd @('up','-d','app','web')
+    if ($config['DB_ENGINE'] -eq 'postgres') { Compose -Cmd @('up','-d','--wait','--wait-timeout','120','postgres') }
+    if ($config['DB_ENGINE'] -eq 'mariadb') { Compose -Cmd @('up','-d','--wait','--wait-timeout','120','mariadb') }
+    if ($config['DB_ENGINE'] -eq 'mysql') { Compose -Cmd @('up','-d','--wait','--wait-timeout','120','mysql') }
+    Compose -Cmd @('up','-d','--wait','--wait-timeout','120','app','web')
     if (-not ((Get-Content 'app/.env') | Where-Object { $_ -match '^APP_KEY=.+$' })) {
         Compose -Cmd @('exec','-T','app','php','artisan','key:generate','--force')
     }

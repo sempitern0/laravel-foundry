@@ -17,6 +17,10 @@ services:
     image: ${WEB_IMAGE:?WEB_IMAGE must point to a published release}
     restart: unless-stopped
     depends_on: [app]
+    # Share only the persistent public uploads with Nginx; application source
+    # and private Laravel storage remain unavailable to HTTP clients.
+    volumes:
+      - app-storage:/var/www/html/storage:ro
     networks: [internal]
   caddy:
     image: caddy:2-alpine

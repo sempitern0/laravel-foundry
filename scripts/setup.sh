@@ -12,10 +12,10 @@ docker compose run --rm --no-deps composer php /opt/letsgo/configure-app.php
 
 db=$(sed -n 's/^DB_ENGINE=//p' .env | tr -d '"')
 https=$(sed -n 's/^HTTPS_ENABLED=//p' .env | tr -d '"')
-if [ "$db" = "postgres" ]; then docker compose up -d postgres; fi
-if [ "$db" = "mariadb" ]; then docker compose up -d mariadb; fi
-if [ "$db" = "mysql" ]; then docker compose up -d mysql; fi
-docker compose up -d app web
+if [ "$db" = "postgres" ]; then docker compose up -d --wait --wait-timeout 120 postgres; fi
+if [ "$db" = "mariadb" ]; then docker compose up -d --wait --wait-timeout 120 mariadb; fi
+if [ "$db" = "mysql" ]; then docker compose up -d --wait --wait-timeout 120 mysql; fi
+docker compose up -d --wait --wait-timeout 120 app web
 
 if ! grep -Eq '^APP_KEY=.+$' app/.env; then
   docker compose exec -T app php artisan key:generate --force
