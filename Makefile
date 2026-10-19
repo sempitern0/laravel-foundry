@@ -18,30 +18,46 @@ endif
 .DEFAULT_GOAL := help
 DC := docker compose
 STARTER ?=
-.PHONY: help setup up up-detached down down-detached build rebuild restart logs ps shell artisan composer npm migrate test lint worker scheduler redis destroy config backup https-cert https-setup env-sync reset-project
+.PHONY: help setup up up-detached up-wait up-logs start stop down down-detached build rebuild restart logs ps shell artisan composer npm migrate test lint worker scheduler redis destroy config backup https-cert https-setup env-sync reset-project
 
 help:
-	@echo "Laravel Let's Go - Docker-based, frontend-neutral Laravel template"
-	@echo "  make setup                   Interactive starter selector (default: Laravel)"
-	@echo "  make setup STARTER=svelte    Svelte + Inertia"
-	@echo "  make setup STARTER=vue       Vue + Inertia"
-	@echo "  make setup STARTER=react     React + Inertia"
-	@echo "  make setup STARTER=livewire  Livewire"
-	@echo "  make setup STARTER=laravel   Plain Laravel"
-	@echo "  make up / down / ps / logs   Container management"
-	@echo "  make rebuild                 Rebuild PHP image after Dockerfile changes"
-	@echo "  make artisan CMD='route:list' / composer CMD='require ...'"
-	@echo "  make npm CMD='run build' / migrate / test / lint"
-	@echo "  make worker / scheduler / redis / backup / destroy"\n\t@echo "  make env-sync                 Add missing keys without overwriting local values"\n\t@echo "  make reset-project            Remove generated app and volumes; require confirmation"\n\t@echo "  make https-setup              Configure HTTPS hosts and optional CA trust"
+	@echo "Laravel Let's Go - Docker Compose Laravel project template"
+	@echo "  make setup [STARTER=svelte]   Interactive first-time installation"
+	@echo "  make up                     Fast, detached start / create"
+	@echo "  make up-wait                Wait for container healthchecks"
+	@echo "  make up-logs                Foreground compose session"
+	@echo "  make stop / start           Quick pause and resume (keep containers)"
+	@echo "  make down                   Remove containers/networks, keep volumes"
+	@echo "  make rebuild                Rebuild dev images explicitly"
+	@echo "  make logs / ps              Inspect application services"
+	@echo "  make artisan CMD='route:list'"
+	@echo "  make composer CMD='install' / npm CMD='run build'"
+	@echo "  make migrate / test / lint"
+	@echo "  make backup / env-sync / https-setup"
+	@echo "  make reset-project          Destructive: remove generated app and volumes"
 
 setup:
 	$(SETUP_SCRIPT) $(if $(strip $(STARTER)),$(if $(filter Windows_NT,$(OS)),-Starter "$(STARTER)","$(STARTER)"),)
 
+# Fast path: return when containers are started, not when every proxy passes
+# a chained healthcheck. Use up-wait for deployment smoke tests.
 up:
+	$(DC) up -d
+
+up-detached: up
+
+up-wait:
+	$(DC) up -d --wait --wait-timeout 120
+
+up-logs:
 	$(DC) up
 
-up-detached:
-	$(DC) up -d
+# Daily pause/resume: unlike "down" these retain containers and networks.
+stop:
+	$(DC) stop
+
+start:
+	$(DC) start
 
 build:
 	$(DC) build app composer
@@ -54,7 +70,7 @@ down:
 
 down-detached: down
 
-restart: down up-detached
+restart: stop start
 
 ps:
 	$(DC) ps
@@ -81,7 +97,7 @@ test:
 	$(DC) exec app php artisan test
 
 lint:
-	$(DC) exec app composer run lint:check
+	$(DC) run --rm --no-deps composer composer run lint:check
 
 worker:
 	$(DC) --profile workers up -d worker

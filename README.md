@@ -1,216 +1,172 @@
+<div align="center">
+
 # Laravel Let's Go
 
-**Frontend-neutral Laravel template with native Windows PowerShell and Linux/macOS shell support.** No Laravel Sail, Herd or paid local database. Docker Compose runs PHP-FPM, Nginx, PostgreSQL, Mailpit and Node; Redis, queue workers and scheduler are optional.
+**A Docker-first, frontend-neutral Laravel development template.**
 
-## Requirements
+[![CI](https://github.com/sempitern0/laravel-letsgo/actions/workflows/ci.yml/badge.svg)](https://github.com/sempitern0/laravel-letsgo/actions/workflows/ci.yml)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Docker Compose](https://img.shields.io/badge/orchestration-Docker%20Compose-2496ED?logo=docker&logoColor=white)](compose.yaml)
+[![PowerShell + POSIX](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-555)](#requirements)
+[![Status: Preview](https://img.shields.io/badge/status-preview-yellow)](https://github.com/sempitern0/laravel-letsgo/pull/1)
 
-- Docker Desktop with Linux containers + Compose v2 on Windows, or Docker Engine + Compose v2 on Linux.
-- Git and GNU Make if you want `make` shortcuts. **PowerShell users can also run the scripts directly without Make.**
-- No host PHP, Composer, Node or PostgreSQL. A disposable Composer toolbox provides PHP, Composer and Node/npm for Laravel starter hooks. The PHP-FPM runtime excludes Composer/Node/npm. Vite runs in a separate Node service.
-- On Linux set `DEV_UID` and `DEV_GID` in root `.env` to match your user when necessary. Windows uses Docker Desktop's bind mount handling.
+**Bring your own Laravel starter. No Sail, Herd, required SaaS, or paid local database.**
 
-## Initialize a Laravel project
+[Quick start](#quick-start) · [Architecture](#architecture) · [Commands](#daily-commands) · [HTTPS](#local-https-with-caddy) · [Troubleshooting](#troubleshooting)
 
-Use `make setup` to choose the starter interactively, or specify it explicitly:
+</div>
 
-| Frontend choice | GNU Make (all platforms) | Native PowerShell (Windows) |
-| --- | --- | --- |
-| Laravel only (default) | `make setup STARTER=laravel` | `.\scripts\setup.ps1 -Starter laravel` |
-| Svelte + Inertia | `make setup STARTER=svelte` | `.\scripts\setup.ps1 -Starter svelte` |
-| Vue + Inertia | `make setup STARTER=vue` | `.\scripts\setup.ps1 -Starter vue` |
-| React + Inertia | `make setup STARTER=react` | `.\scripts\setup.ps1 -Starter react` |
-| Livewire | `make setup STARTER=livewire` | `.\scripts\setup.ps1 -Starter livewire` |
+> [!IMPORTANT]
+> This is an **infrastructure template, not a Laravel application repository**. The generated `app/` directory is deliberately ignored by Git. Release/staging configurations are **reference starting points**, not a verified turnkey production deployment. Never commit secrets.
 
-For example, from **Windows PowerShell**:
+## At a glance
+
+| Area | Choice |
+| --- | --- |
+| Backend | Laravel, PHP 8.4-FPM, Nginx |
+| Starter | Plain Laravel · Svelte + Inertia · Vue + Inertia · React + Inertia · Livewire |
+| Database | PostgreSQL · MariaDB · SQLite |
+| Queues | Sync · Database · Redis |
+| Email | Mailpit · Log · Custom SMTP |
+| Database UI | Pgweb (PostgreSQL) · Adminer · None |
+| HTTPS | Caddy local CA, custom `.test` hostname |
+| Development tools | Disposable Composer container, separate PHP-capable Node/Vite container |
+| Host support | Native PowerShell, Linux, macOS, WSL2 |
+| Delivery | Docker Compose; optional image-release workflow via GHCR |
+
+## Quick start
+
+Requirements: Docker Desktop with Linux containers (Windows) or Docker Engine (Linux), **Compose v2**, Git, and GNU Make. PowerShell users can invoke scripts directly without Make. PHP, Node, Composer, npm and the database run inside containers.
 
 ```powershell
+git clone https://github.com/sempitern0/laravel-letsgo.git my-laravel-app
+cd my-laravel-app
 make setup STARTER=svelte
-# Or without GNU Make:
+```
+
+Or use `make setup` to choose a starter interactively. The setup wizard asks for a Compose project name, application name, database, queue, email, database UI, and optional HTTPS hostname. For a plain Laravel application use `STARTER=laravel`.
+
+Windows without Make:
+
+```powershell
 .\scripts\setup.ps1 -Starter svelte
 ```
 
-On **Linux/macOS/WSL**:
+Linux/macOS/WSL:
 
 ```sh
-make setup STARTER=svelte
-# Or directly:
 sh scripts/setup.sh svelte
 ```
 
-Without a STARTER option, an interactive selection menu appears. In non-interactive execution, plain Laravel is used by default. Setup is designed to be repeatable: it preserves an existing `app/artisan` and does not silently change frontend. When creating a new application, use a fresh template checkout rather than deleting code.
+**Existing `app/`:** setup asks whether to keep the current installation or archive and replace it. It does not silently delete code or database volumes. The first run downloads official starter code and dependencies, removes Sail, sets up the chosen database, migrates and prepares assets. First setup may take time; daily startup should not repeat it.
 
-**Important:** the initial setup downloads the chosen official Laravel starter into `app/`, **removes Laravel Sail from composer.json before the first `composer install`**, then installs Composer and npm dependencies in Docker, sets up PostgreSQL and Mailpit, generates a missing APP_KEY and runs Laravel migrations. Internet access is needed for the initial downloads.
-
-## Interactive infrastructure configuration
-
-Before installing the Laravel starter, one PHP wizard (running **inside Docker**, so both PowerShell and Unix use identical questions) asks for the application/container project name, PostgreSQL/MariaDB/SQLite, queue (sync/database/Redis), mail (Mailpit/log/custom SMTP), optional Pgweb/Adminer, and custom `.test` HTTPS hostname. All these options are written to the ignored root `.env` as Compose profiles and propagated to `app/.env`.
-
-- **Database:** PostgreSQL is the default; MariaDB and SQLite are optional. Existing database volumes are not destroyed automatically when changing engines; migrate or back up data before changing engines.
-- **Queues:** sync requires no worker; database and Redis enable the worker automatically. Redis starts only when chosen.
-- **Mail:** Mailpit for development, log or custom SMTP. Mailpit UI is exposed on http://localhost:8025 when selected.
-- **DB GUI:** Pgweb for PostgreSQL or Adminer for MariaDB (default port http://localhost:8081). SQLite deliberately has no remote DB GUI.
-- **Caddy HTTPS:** opt in, default `https://yourname.test:8443`, using `tls internal`. The wizard disables Vite's live server for HTTPS and builds static assets to avoid mixed content. On ordinary HTTP, Vite HMR remains enabled.
-
-### Local HTTPS and custom domain
-
-When enabling HTTPS, the wizard prints the hostname. Add it to your OS `hosts` file, for example:
+## Architecture
 
 ```text
-127.0.0.1 myapp.test
+                        Browser
+                   HTTP or local HTTPS
+                           |
+                     Caddy (optional)
+                           |
+                         Nginx
+                           |
+                       Laravel
+                       PHP-FPM
+                           |
+              +------------+-------------+
+              |                          |
+      PostgreSQL/MariaDB/SQLite     Queues / Redis
+              |
+       Pgweb / Adminer (optional)
+
+    On-demand tools: Composer + PHP + Node/npm
+    Frontend:        Node + PHP CLI (Wayfinder) + Vite
+    Test email:      Mailpit
 ```
 
-Windows: edit `C:\\Windows\\System32\\drivers\\etc\\hosts` as Administrator. Linux/macOS: edit `/etc/hosts` with appropriate privileges. Start with `make up-detached` or run `make setup`, then visit `https://myapp.test:8443`. The Caddy local CA certificate is available through `make https-cert`. **Inspect it before importing into your OS/browser trusted-root store.** On Windows, install the inspected root CA into Current User → Trusted Root Certification Authorities. Restart your browser. Use this CA only for local development. The port is 8443 to avoid requiring administrator access or conflicting with other software on port 443.
+The PHP-FPM runtime does not carry Composer or npm. The disposable Composer toolbox contains Node/npm because official Laravel starter hooks may invoke npm. The Node/Vite container contains PHP CLI because Wayfinder can invoke `php artisan` while building frontend assets. Containers share project files and selected Docker volumes; networks are separation of responsibilities, **not a full sandbox for untrusted dependencies**.
 
-`http://localhost:8080/healthz` should return `ok`. If Laravel routes fail, run `docker compose logs web app` and `docker compose exec app php artisan route:list` before changing domains.
+## Daily commands
 
-### Recovering from a partially completed setup
+| Command | Purpose |
+| --- | --- |
+| `make up` | **Fast** detached creation/start; does not wait for full health |
+| `make up-detached` | Alias for `make up` |
+| `make up-wait` | Start and wait for declared container healthchecks |
+| `make up-logs` | Run Compose in foreground |
+| `make stop` / `make start` | Quick daily pause/resume without recreating containers |
+| `make down` | Remove containers and networks; **keep volumes** |
+| `make restart` | Stop/start existing containers |
+| `make rebuild` | Explicit image rebuild after Dockerfile changes |
+| `make ps` / `make logs` | Inspect containers and logs |
+| `make artisan CMD="route:list"` | Laravel Artisan |
+| `make composer CMD="require vendor/package"` | Composer in disposable toolbox |
+| `make npm CMD="run build"` | Node/Vite tool container |
+| `make migrate` / `make test` / `make lint` | Laravel operations |
+| `make env-sync` | Add missing root `.env` keys without overwriting values |
+| `make backup` | Export **local** database dump (not offsite backup) |
+| `make https-setup` | Local hostname/certificate guidance and Windows helper |
+| `make reset-project` | **Destructive** full reset of generated app and Compose volumes |
 
-If Git cloned successfully but the checkout failed with `cp: preserving times for '/var/www/html/.': Operation not permitted`, the issue was the old `cp -a` copying directory metadata onto a Windows/Docker Desktop bind mount. The updated helper uses `cp -R` and removes nested Git metadata in temporary storage. **Do not run `make destroy` or remove database volumes.** After pulling this change, run setup again and select **Keep** to resume Composer if `app/artisan` exists. If `app/` contains only an incomplete copy without `artisan`, choose **Replace** to archive those partial files before retrying.
+### Fast startup versus readiness
 
-If a fresh setup stopped with `fatal: destination path '/var/www/html' already exists and is not an empty directory`, the cause was the separate Docker `node_modules` volume mounted under the otherwise empty `app/` directory. The corrected bootstrap clones to a disposable path inside the PHP container and copies only the source into `app/`; there is **no reason to delete `app/` or Docker volumes**. The infrastructure wizard now runs before starter download, and fails explicitly if its input is disconnected instead of selecting defaults silently.
+`make up` is the default quick path: it uses detached Compose startup. Nginx and Caddy depend on their upstream containers **starting**, not each passing a serial 20-second readiness gate. Healthchecks remain enabled and probe rapidly during startup. If you need to know that the stack is ready rather than merely started, run `make up-wait`.
 
-If Composer stopped with `artisan install:features` / `npm: not found`, **do not delete `app/` or reset database volumes**. Update this template branch and rerun `make setup STARTER=svelte` (or the original starter). Setup now rebuilds the PHP dev image and detects incomplete bootstrap via `app/.letsgo-starter`; it reruns Composer and explicitly replays the feature-install hook when needed, even if `vendor/autoload.php` already exists.
+After the first setup, prefer `make stop` and `make start` for short daily development sessions; these retain Docker containers. **Do not use `make reset-project` to restart an app.** Initial cold starts, database recovery, image pulls and Windows filesystem performance still take variable time. Fast startup is **not a promise of a particular latency**.
 
-### Laravel Sail policy
+## Local HTTPS with Caddy
 
-The official Svelte, React, Vue and Livewire starters currently declare `laravel/sail` as a dev dependency. This template deliberately uses its own Compose files, so it strips Sail **before dependency resolution** with `composer remove laravel/sail --dev --no-update --no-scripts --no-plugins`. The generated `composer.lock` therefore does not include Sail. If an existing initialized application still declares Sail, rerunning `make setup` removes it and regenerates the lockfile through Composer. Both PowerShell and POSIX shell bootstrap scripts enforce this rule. CI/release checks reject a committed application containing Sail.
+Choose local HTTPS in the setup wizard. For a custom name like `omapop.test`, add `127.0.0.1 omapop.test` to your hosts file (Windows: `C:\Windows\System32\drivers\etc\hosts`; Linux/macOS: `/etc/hosts`). Port **443** is the new-installation default, so the URL is:
 
-This is a **setup-time cleanup and CI guard, not a Composer `post-install-cmd` hook**: Composer hooks that modify their own dependency graph can cause recursive or inconsistent installs. If you add Sail manually later, CI will flag it and `make setup` can reconcile your application.
+**https://omapop.test**
 
-## npm installation performance (especially on Windows)
+On Windows use `make https-setup` to guide hostname setup and offer to trust the local Caddy CA after confirmation. You must trust the CA in your OS/browser to avoid certificate warnings. Firefox may use its own certificate settings. Caddy's `tls internal` certificates are **development-only**, not public ACME certificates. If port 443 is occupied, choose another `HTTPS_PORT` (e.g. 8443) and append it to the URL. The wizard configures `app/.env` `APP_URL` accordingly.
 
-The local app source is still mounted from `./app`, but **`node_modules` now lives in a named Docker volume** shared between the development PHP container (which runs Laravel's Composer hooks) and the Node/Vite container. The npm download cache is persisted in another volume; Composer's download cache is also persisted. This avoids writing tens of thousands of npm files to a slow NTFS bind mount.
+Existing installations keep their current `HTTPS_PORT` until you change it. For a pre-existing installation, change the root `.env` and Laravel `APP_URL`, recreate Caddy and clear Laravel's cached configuration.
 
-The Node and PHP development containers both use **Node.js 22 on Debian/glibc**. This matters for platform-specific binaries (Vite/Rollup, Tailwind) that could break when sharing `node_modules` between Alpine/musl and Debian/glibc.
+## Environment and project lifecycle
 
-The `setup` command detects whether Composer has already installed an intact dependency tree and skips a redundant second `npm install`. If it has not, it installs with `--prefer-offline --no-audit --no-fund`. A subsequent `make up` reuses both the images and named volumes; `make rebuild` is available for Dockerfile changes.
+- **`.env.example`:** safe, generic defaults committed to the template.
+- **Root `.env`:** generated project-specific Compose/wizard settings; ignored by Git.
+- **`app/.env`:** generated Laravel environment; ignored with all of `app/`.
+- **`make env-sync`:** adds missing keys from the latest template, **never overwrites** existing values, secrets, or custom settings.
+- **`app.production.env.example` / `db.production.env.example`:** separate production references; do not copy development credentials into production.
 
-**Changing npm packages:** Run `make npm CMD="install"` to install/update dependencies, or `make npm CMD="ci"` to reinstall exactly from the committed lockfile. No host npm required.
-
-**Existing checkout:** Docker will start using fresh named volumes after you update this branch; a previous `app/node_modules` folder on Windows may remain on disk but is shadowed inside containers. Once the new setup works, that obsolete host folder can be removed manually to reclaim space. Do not delete `app/`, `app/.env`, or your database volumes.
-
-**Windows performance tip:** For further acceleration, put a large repository under the WSL2 Linux filesystem rather than `C:\\Users\\...` and open it with your editor's WSL integration. Moving the project is optional.
-
-## Daily development (PowerShell and Unix)
-
-```sh
-make up                 # foreground logs
-make up-detached        # background
-make down               # stop stack without deleting volumes
-make down-detached      # alias for down (Compose down is nonblocking)
-make rebuild              # Only after changing the Dockerfile/images
-make down
-make logs
-make ps
-make artisan CMD="route:list"
-make composer CMD="require vendor/package"
-make npm CMD="run build"
-make migrate
-make test
-make worker
-make scheduler
-make redis
-make backup
-make destroy
-```
-
-For Windows without GNU Make, use `docker compose up -d`, `docker compose exec app php artisan ...`, and the PowerShell scripts in `scripts/`. For example:
-
-```powershell
-.\scripts\backup.ps1
-.\scripts\destroy.ps1
-```
-
-Local site: http://localhost:8080; Mailpit: http://localhost:8025. Node/Vite is exposed on localhost:5173. PostgreSQL and Redis do not expose host TCP ports.
-
-### Operating-system parity
-
-- GNU Make checks `OS=Windows_NT` and invokes **powershell.exe**, not `sh`, on native Windows.
-- Bash/WSL/Linux/macOS invoke `scripts/*.sh` through the host POSIX shell.
-- PowerShell scripts use `docker compose` and .NET filesystem APIs; **no Unix shell is required on the host**.
-- Linux shells inside Docker containers are normal and independent of the host PowerShell.
-- The PostgreSQL backup uses `pg_dump -Fc` inside the container followed by `docker compose cp`, avoiding PowerShell 5.1 redirection corrupting binary or text encoding.
-- Do not execute `./scripts/*.sh` directly in Windows PowerShell. Use the `.ps1` versions.
-
-### Template isolation and existing installations
-
-The template **does not track `app/`**. Its root `.gitignore` excludes the entire generated folder. Any generated application is private to your local checkout. When `make setup` finds a nonempty `app/`, it asks whether to keep its files (default) or replace them. Replacing stops app containers and **moves** the directory to `app-backups/app-YYYYMMDD-HHMMSS` before generating a new app. It does not delete Docker volumes or reset PostgreSQL. In noninteractive runs, setup refuses to overwrite anything.
-
-The backups under `app-backups/` are local archives, **not** offsite backups; do not delete them until verified. Database migrations can change existing database schemas; replacing source code does not reset the database.
-
-For real product repositories, deliberately remove `/app/` from the root ignore file and commit the app and lockfiles (excluding the app's secrets and dependencies). This repository remains only an infrastructure template. The development Dockerfile context excludes `app/`; release builds use a separate production Dockerfile context rule to include source only in your application repository.
-
-## Staging and production
-
-`compose.production.yaml` provides a separate base topology with **Caddy TLS → Nginx → PHP-FPM**, PostgreSQL, scheduler, queue worker and persistent storage. Build releases from the selected starter: the GitHub Actions `v*` workflow compiles `npm run build` and publishes Docker images to GHCR when app source and lockfiles are committed. Deployment is an explicit operator promotion; **no staging/prod deployment has been verified yet**.
-
-See `app.production.env.example` and `db.production.env.example`, configure independent secrets/domains/projects for staging and production, and use:
-
-```sh
-export PROJECT_NAME=myapp-prod APP_DOMAIN=example.com DB_DATABASE=letsgo DB_USERNAME=letsgo
-export APP_IMAGE=ghcr.io/OWNER/REPO-php:v1.0.0 WEB_IMAGE=ghcr.io/OWNER/REPO-web:v1.0.0
-docker compose -f compose.production.yaml config -q
-docker compose -f compose.production.yaml pull
-docker compose -f compose.production.yaml up -d
-docker compose -f compose.production.yaml exec -T app php artisan migrate --force
-```
-
-In PowerShell, set environment variables using `$env:PROJECT_NAME='myapp-prod'`, `$env:APP_DOMAIN='example.com'`, etc., rather than Unix `export`. Production requires correctly managed secrets, firewall, offsite encrypted backups **and restore tests**, application health checks and monitoring.
-
-`make backup` produces a local dump only; it is not a production backup policy. `make destroy` deletes volumes after the explicit confirmation `DELETE`.
-
-## Composer/Node toolbox and networks
-
-The long-running PHP-FPM runtime and workers exclude Composer and Node. `docker compose run --rm --no-deps composer composer install` starts an on-demand toolbox with the same PHP extensions as the runtime, plus Node/npm for Laravel starter Composer hooks. `make composer CMD="require vendor/package"` uses the toolbox; `make npm CMD="install"` uses the separate Node container. Vite remains a separate frontend process.
-
-The Composer toolbox joins the application network only when a Laravel hook needs to reach a database, and also joins the egress-capable `devtools` network. The Node service uses `devtools` for dependency downloads. This arrangement improves process separation and reduces the runtime toolchain surface, but **Docker networks do not provide strict isolation**, especially when the toolbox mounts project source. Neither Composer nor npm should be run on untrusted packages. It does not materially speed up downloads; named volumes and caches remain responsible for the speed improvement.
-
-
-### Wayfinder and PHP in Vite
-
-Official Laravel starters using Wayfinder invoke `php artisan wayfinder:generate --with-form` during `npm run build` and the Vite development server. The separate Node/Vite container therefore uses a `frontend` Docker target with PHP CLI and the same extensions as Laravel, **without Composer**. Composer remains in the disposable tooling image, and PHP-FPM remains free of Node/npm/Composer. The PHP-FPM healthcheck is also attached to the actual app service, not the Composer toolbox.
-
-After updating the branch on Windows, recover without removing the application or database volumes:
-
-```powershell
-git pull --ff-only
-docker compose build node
-docker compose --profile dev run --rm --no-deps --entrypoint npm node run build
-make up-detached
-```
-
-
-### Faster healthchecks on Docker Desktop
-
-The development Compose file uses Docker's `start_interval: 2s` for **PHP-FPM** and **Nginx** with a `start_period: 45s` grace window. `start_period` is **not a mandatory wait**: if a healthcheck passes after two seconds, Compose proceeds immediately to the next dependency. Once healthy, checks run every 30 seconds to avoid continuous load. This removes the previous sequential 20s + 20s polling penalty without removing readiness gates for Caddy. This requires **Docker Engine 25+** and **Docker Compose v2.20.2+** for `start_interval`.
-
-To apply the new healthcheck definitions (without removing your database volumes):
-
-```powershell
-git pull --ff-only
-docker compose up -d --force-recreate app web caddy-local
-docker compose ps
-```
-
-Docker startup duration still depends on Windows filesystem performance and actual PHP/Nginx readiness. Expect **seconds rather than an artificial 40-second delay** on an otherwise warm Docker Desktop installation; this has not been timed on the Windows host.
-
-
-## Updating environment variables and resetting a generated app
-
-The version-controlled **root `.env.example` remains generic** by design; it must not be filled with real per-project credentials or names. A local `.env` is a separate ignored file. Run:
-
-```powershell
-make env-sync
-```
-
-The sync appends **only keys missing from the root `.env`**, using the current `.env.example` defaults. It preserves existing values, credentials, comments and custom variables. It does not update or expose production secrets; `app.production.env.example` and `db.production.env.example` remain independent deployment templates. Setup runs the root sync before the wizard. Existing `app/.env` is configured separately through the setup flow. Review newly inserted defaults, then change them through the wizard as needed.
-
-To **reset the generated project completely** while keeping the infrastructure template itself:
+To replace everything generated with a new app:
 
 ```powershell
 make reset-project
-# Then initialize a new project:
-make setup STARTER=svelte
+make setup STARTER=livewire
 ```
 
-Reset requires an interactive confirmation with the **exact Compose project name**: `RESET <PROJECT_NAME>`. It stops containers, deletes that project's volumes (including databases, Redis and Caddy local CA), deletes ignored `app/`, the root `.env` and exported local CA files. This action is irreversible for data not backed up. It intentionally **preserves** `backups/` and `app-backups/`, all repository templates/scripts and shared Docker images. It does **not** modify Windows hosts entries or trusted root certificates; review and remove stale entries manually if appropriate. A new `make setup` recreates the default root `.env` and lets you choose different settings. Do not use this command merely to reconfigure a port or certificate.
+Reset requires typing `RESET <PROJECT_NAME>`. It removes the generated `app/`, root `.env`, and **all volumes of that Compose project** (including database data and Caddy CA). It **preserves** `backups/`, `app-backups/`, the template files, and does not revoke system certificate trust or modify hosts. **Back up data before resetting.**
+
+## Staging, production, and release boundaries
+
+The repository provides a `compose.production.yaml` reference with Caddy, Nginx, PHP-FPM, PostgreSQL, worker and scheduler, and a tag-triggered GitHub Actions release workflow that publishes versioned images to GHCR **only once the generated application source and lockfiles have been committed to an actual application repository**.
+
+> [!WARNING]
+> The template intentionally ignores `app/`. Therefore its release workflow **cannot** publish a real application image directly from this pristine template. For a product, create a separate repo that tracks Laravel source, `composer.lock` and `package-lock.json`, while ignoring `vendor/`, `node_modules/` and secrets. Staging and production require separate secrets, database volumes, DNS, external encrypted backups, restore tests, observability and tested deployments. The provided production Compose currently uses PostgreSQL; it is not automatically rewritten to match local MariaDB/SQLite choices.
+
+The local `make backup` command is **not** a disaster-recovery plan. Store encrypted database and file backups outside the VPS/host and routinely verify restoration.
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| `http://localhost:8080` fails | `docker compose ps`, `docker compose logs web app`, then `http://localhost:8080/healthz` |
+| `https://*.test` fails | Check `hosts`, `HTTPS_PORT`, `COMPOSE_PROFILES`, port ownership and `docker compose logs caddy-local` |
+| Browser says HTTPS is not trusted | Run `make https-setup`, review and explicitly trust **your own** Caddy CA |
+| Wayfinder build says `php: not found` | Rebuild Node frontend image: `docker compose build node` |
+| `composer install` invokes npm | Use the Composer toolbox, which includes Node/npm for Laravel hooks |
+| Windows clone/copy fails | Use the bootstrap copy helper and Docker-managed `node_modules`, not `git clone` into a mounted populated directory |
+| Slow repeated startups | Use `make start` after `make stop`, or `make up` rather than `make up-wait` |
+| Environment file is missing keys | `make env-sync` (preserves existing values) |
+
+## Contributing
+
+Issues and pull requests are welcome. Test shell paths on Linux/WSL and PowerShell paths on Windows when modifying setup; keep `app/` out of template commits. Before proposing infrastructure changes, validate `docker compose config -q` and run the CI workflow.
+
+## License
+
+Released under the [MIT License](LICENSE). © 2026 sempitern0.

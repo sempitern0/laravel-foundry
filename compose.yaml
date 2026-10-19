@@ -62,8 +62,11 @@ services:
     volumes:
       - ./app:/var/www/html:ro
       - ./docker/nginx/site.conf:/etc/nginx/conf.d/default.conf:ro
+    # Development proxies may start as soon as PHP-FPM is running.
+    # Readiness is still exposed through healthchecks; use "make up-wait"
+    # when a caller must wait for all declared healthchecks.
     depends_on:
-      app: {condition: service_healthy}
+      app: {condition: service_started}
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz"]
       start_period: 45s
@@ -82,8 +85,9 @@ services:
       - ./docker/caddy/Caddyfile.local:/etc/caddy/Caddyfile:ro
       - caddy_local_data:/data
       - caddy_local_config:/config
+    # Avoid a second sequential readiness barrier during ordinary startup.
     depends_on:
-      web: {condition: service_healthy}
+      web: {condition: service_started}
     networks: [internal]
   node:
     build:
