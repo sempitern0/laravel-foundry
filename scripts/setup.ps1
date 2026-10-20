@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Starter = '')
+param([string]$Starter = '', [switch]$Reconfigure)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 function Compose {
@@ -25,9 +25,14 @@ try {
     }
     Compose -Cmd @('build','composer')
     Compose -Cmd @('run','--rm','--no-deps','composer','php','/opt/letsgo/env-sync.php','--root-only')
-    Compose -Cmd @('run','--rm','--interactive','--no-deps','composer','php','/opt/letsgo/wizard.php')
+    Compose -Cmd @('run','--rm','--no-deps','composer','php','/opt/letsgo/project-config.php','restore')
+    $wizardArgs = @('run','--rm','--interactive','--no-deps','composer','php','/opt/letsgo/wizard.php')
+    if (-not $Reconfigure) { $wizardArgs += '--if-needed' }
+    Compose -Cmd $wizardArgs
+    Compose -Cmd @('build','app','composer','node')
     & (Join-Path $PSScriptRoot 'bootstrap.ps1') -Starter $Starter
     if (-not $?) { throw 'Bootstrap failed' }
+    Compose -Cmd @('run','--rm','--no-deps','composer','php','/opt/letsgo/project-config.php','save')
     Compose -Cmd @('run','--rm','--no-deps','composer','php','/opt/letsgo/configure-app.php')
     $config=@{}
     foreach ($line in Get-Content '.env') {
@@ -37,12 +42,12 @@ try {
     if ($config['DB_ENGINE'] -eq 'mariadb') { Compose -Cmd @('up','-d','--wait','--wait-timeout','120','mariadb') }
     if ($config['DB_ENGINE'] -eq 'mysql') { Compose -Cmd @('up','-d','--wait','--wait-timeout','120','mysql') }
     Compose -Cmd @('up','-d','--wait','--wait-timeout','120','app','web')
-    if (-not ((Get-Content 'app/.env') | Where-Object { $_ -match '^APP_KEY=.+$' })) {
+    if (-not ((Get-Content 'app/.env') | Where-Object { $_ -match '^APP_KEY=("[^"]+"|[^"\s]+)$' })) {
         Compose -Cmd @('exec','-T','app','php','artisan','key:generate','--force')
     }
     Compose -Cmd @('exec','-T','app','php','artisan','migrate','--force')
-    Compose -Cmd @('--profile','dev','run','--rm','--no-deps','--entrypoint','sh','node','/opt/letsgo/npm-ensure.sh')
-    if ($config['HTTPS_ENABLED'] -eq '1') {
+    if (Test-Path -LiteralPath 'app/package.json') {
+        Compose -Cmd @('--profile','dev','run','--rm','--no-deps','--entrypoint','sh','node','/opt/letsgo/npm-ensure.sh')
         Compose -Cmd @('--profile','dev','run','--rm','--no-deps','--entrypoint','npm','node','run','build')
         if (Test-Path -LiteralPath 'app/public/hot') { Remove-Item -LiteralPath 'app/public/hot' -Force }
     }

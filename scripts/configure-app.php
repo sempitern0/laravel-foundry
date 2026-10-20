@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
-$root = '/workspace';
+$root = getenv('LETSGO_PROJECT_ROOT') ?: '/workspace';
+$appRoot = getenv('FOUNDRY_APP_ROOT') ?: '/var/www/html';
 $env=[];
 foreach (file("$root/.env",FILE_IGNORE_NEW_LINES) as $line) {
     if(preg_match('/^([A-Z][A-Z0-9_]*)=(.*)$/',$line,$m)) {
@@ -8,8 +9,8 @@ foreach (file("$root/.env",FILE_IGNORE_NEW_LINES) as $line) {
         $env[$m[1]]=trim($value,'"');
     }
 }
-$appPath='/var/www/html/.env';
-if (!file_exists($appPath)) copy('/var/www/html/.env.example',$appPath);
+$appPath=$appRoot.'/.env';
+if (!file_exists($appPath)) copy($appRoot.'/.env.example',$appPath);
 $https=($env['HTTPS_ENABLED']??'0')==='1';
 $db=$env['DB_ENGINE']??'postgres';
 $mail=$env['MAIL_ENGINE']??'mailpit';
@@ -46,7 +47,7 @@ foreach($old as &$line){
 foreach($values as $key=>$value)if(!isset($seen[$key]))$old[]=$key.'="'.str_replace(['\\','"'],['\\\\','\\"'],$value).'"';
 file_put_contents($appPath,implode("\n",$old)."\n");
 if($db==='sqlite'){
-    $dbFile='/var/www/html/database/database.sqlite';
+    $dbFile=$appRoot.'/database/database.sqlite';
     if(!file_exists($dbFile))touch($dbFile);
 }
 echo "Laravel environment configured ($db / $queue / $mail).\n";

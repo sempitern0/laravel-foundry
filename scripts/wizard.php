@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-$root = '/workspace';
+$root = getenv('LETSGO_PROJECT_ROOT') ?: '/workspace';
 $path = "$root/.env";
 if (!file_exists($path)) copy("$root/.env.example", $path);
 $env = [];
@@ -24,6 +24,10 @@ function yn(string $label, bool $default): bool {
     return ask($label.' (yes/no)', $default ? 'yes' : 'no', ['yes','no']) === 'yes';
 }
 $existing = ($env['SETUP_CONFIGURED'] ?? '0') === '1';
+if ($existing && in_array('--if-needed', $argv, true)) {
+    echo "Keeping saved infrastructure settings.\n";
+    exit(0);
+}
 if ($existing && !yn('Reconfigure existing infrastructure? (No preserves your settings)', false)) {
     echo "Keeping infrastructure settings.\n";
     exit(0);

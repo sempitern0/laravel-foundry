@@ -595,3 +595,5 @@ FodyWeavers.xsd
 
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
+# Local starter hint restored from the portable manifest
+/.foundry-starter

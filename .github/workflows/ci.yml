@@ -24,6 +24,13 @@ jobs:
             echo "Remove laravel/sail from composer.lock."
             exit 1
           fi
+      - name: Test portable configuration and resumed builds
+        run: |
+          php tests/project-config.php
+          python3 tests/build-resume.py
+          sh -n scripts/prepare-node-volumes.sh scripts/prepare-composer-volume.sh
+          php -l scripts/project-config.php
+          php -l scripts/prepare-app.php
       - name: Validate Make recipes
         run: |
           make -n setup STARTER=svelte

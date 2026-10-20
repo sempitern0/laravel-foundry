@@ -6,6 +6,8 @@ command -v docker >/dev/null 2>&1 || { echo "Docker is required." >&2; exit 1; }
 docker compose version >/dev/null 2>&1 || { echo "Docker Compose v2 is required." >&2; exit 1; }
 
 starter="${1:-}"
+if [ -f app/artisan ]; then starter=laravel; fi
+if [ -z "$starter" ] && [ -f .foundry-starter ]; then starter=$(cat .foundry-starter); fi
 if [ -z "$starter" ]; then
   if [ -t 0 ]; then
     printf '\nChoose your Laravel starter:\n' >&2
@@ -37,67 +39,28 @@ case "$starter" in
   *) echo "Unknown starter: $starter (laravel|svelte|vue|react|livewire)" >&2; exit 2 ;;
 esac
 
-if [ -d app ] && [ -n "$(ls -A app 2>/dev/null)" ]; then
-  if [ ! -t 0 ]; then
-    echo "Existing app/ found: interactive keep/replace selection required." >&2
-    exit 2
-  fi
-  printf 'Existing app/: [K]eep or [R]eplace (archive existing files)? '
-  IFS= read -r choice || exit 2
-  case "$choice" in
-    ""|K|k) echo "Keeping app/." ;;
-    R|r)
-      archive="app-backups/app-$(date +%Y%m%d-%H%M%S)"
-      mkdir -p app-backups
-      [ ! -e "$archive" ] || { echo "Archive already exists" >&2; exit 1; }
-      docker compose --profile dev --profile workers down --remove-orphans
-      mv app "$archive"
-      mkdir app
-      echo "Previous app archived at $archive"
-      ;;
-    *) echo "Cancelled; no changes." >&2; exit 2 ;;
-  esac
-fi
-
 if [ -f app/artisan ]; then
   echo "Existing Laravel app found. Preserving its code and frontend."
   # Always rebuild on setup: this is essential when a previously built PHP
   # image lacked npm and setup stopped midway through a Composer hook.
   docker compose build composer
-  docker compose run --rm --no-deps --user 0:0 composer sh -ec 'chown "$DEV_UID:$DEV_GID" /var/www/html/node_modules /tmp/npm-cache /tmp/composer'
+  docker compose run --rm --no-deps --user 0:0 composer sh -ec 'sh /opt/letsgo/prepare-node-volumes.sh && sh /opt/letsgo/prepare-composer-volume.sh'
   docker compose run --rm --no-deps composer sh -c 'node --version && npm --version'
 
-  if grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
-    echo "Removing unwanted Laravel Sail from existing app (and updating composer.lock)."
-    docker compose run --rm --no-deps composer composer remove laravel/sail --dev --no-interaction --no-progress
-  fi
-
-  # Composer may have written vendor/autoload.php and composer.lock BEFORE
-  # failing in post-update-cmd. A valid autoloader is not an install marker.
-  if [ ! -f app/.letsgo-starter ] || [ ! -f app/vendor/autoload.php ]; then
-    docker compose run --rm --no-deps composer composer install --no-interaction --prefer-dist --no-progress
-    if [ ! -f app/.letsgo-starter ] && grep -q 'artisan install:features' app/composer.json; then
-      echo "Replaying interrupted Laravel feature-install hook."
-      docker compose run --rm --no-deps composer composer run-script post-update-cmd --no-interaction
-    fi
-    # For an app restored after an interrupted setup, remember that the
-    # bootstrap completed without guessing its selected frontend starter.
-    if [ ! -f app/.letsgo-starter ]; then
-      printf '%s\n' 'existing' > app/.letsgo-starter
-    fi
-  fi
+  docker compose run --rm --no-deps composer php /opt/letsgo/prepare-app.php
+  docker compose run --rm --no-deps composer composer install --no-interaction --prefer-dist --no-progress
   exit 0
 fi
 
 mkdir -p app
-if [ -n "$(ls -A app 2>/dev/null)" ]; then
+if [ -n "$(find app -mindepth 1 -maxdepth 1 ! -name node_modules -print -quit)" ]; then
   echo "app/ has contents but no artisan file. Refusing to overwrite." >&2
   exit 1
 fi
 
 echo "Installing Laravel starter $starter from $repository ($revision)"
 docker compose build composer
-docker compose run --rm --no-deps --user 0:0 composer sh -ec 'chown "$DEV_UID:$DEV_GID" /var/www/html/node_modules /tmp/npm-cache /tmp/composer'
+docker compose run --rm --no-deps --user 0:0 composer sh -ec 'sh /opt/letsgo/prepare-node-volumes.sh && sh /opt/letsgo/prepare-composer-volume.sh'
 docker compose run --rm --no-deps composer sh -c 'node --version && npm --version'
 docker compose run --rm --no-deps composer sh /opt/letsgo/checkout-starter.sh "$revision" "https://github.com/$repository.git"
 # Fresh official starter repositories have no composer.lock. Drop Sail from
@@ -106,6 +69,7 @@ if grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
   echo "Excluding Laravel Sail before Composer installs dependencies."
   docker compose run --rm --no-deps composer composer remove laravel/sail --dev --no-update --no-scripts --no-plugins --no-interaction --no-progress
 fi
+docker compose run --rm --no-deps composer php /opt/letsgo/prepare-app.php
 docker compose run --rm --no-deps composer composer install --no-interaction --prefer-dist --no-progress
 printf '%s\n' "$starter" > app/.letsgo-starter
 echo "Laravel scaffold ready."

@@ -20,14 +20,15 @@ STARTER ?=
 # Explicit all-profiles stop also removes containers started manually through a
 # profile not included in the current .env.
 ALL_PROFILES := --profile dev --profile tools --profile workers --profile scheduler --profile redis --profile https --profile postgres --profile mariadb --profile mysql --profile phpmyadmin --profile mailpit --profile pgweb --profile adminer
-.PHONY: help setup up up-detached up-wait up-logs start stop restart down build rebuild ps logs shell artisan composer npm migrate test lint backup env-sync https-setup reset-project worker scheduler redis config tenancy-check
+.PHONY: help setup reconfigure up up-detached up-wait up-logs start stop restart down build images rebuild ps logs shell artisan composer npm migrate test lint backup env-sync https-setup reset-project worker scheduler redis config tenancy-check
 
 help:
 	@echo "Laravel Foundry - self-hosted Laravel environments with Docker Compose"
 	@echo ""
 	@echo "Setup:       make setup [STARTER=laravel|svelte|vue|react|livewire]"
 	@echo "Lifecycle:   make up | up-wait | up-logs | start | stop | restart | down"
-	@echo "Images:      make build | rebuild"
+	@echo "Environment: make build | rebuild (restore settings, dependencies and assets)"
+	@echo "Images only: make images"
 	@echo "Diagnostics: make ps | logs | config | shell"
 	@echo "Laravel:     make artisan CMD='route:list' | migrate | test | lint"
 	@echo "Tooling:     make composer CMD='install' | npm CMD='run build'"
@@ -39,6 +40,13 @@ help:
 
 setup:
 	$(SETUP_SCRIPT) $(if $(strip $(STARTER)),$(if $(filter Windows_NT,$(OS)),-Starter "$(STARTER)","$(STARTER)"),)
+
+reconfigure:
+ifeq ($(OS),Windows_NT)
+	$(SETUP_SCRIPT) -Reconfigure
+else
+	FOUNDRY_WIZARD_MODE=--reconfigure $(SETUP_SCRIPT)
+endif
 
 # Detached startup is the default. Readiness is optional and explicit.
 up:
@@ -65,11 +73,13 @@ down:
 	$(DC) $(ALL_PROFILES) down --remove-orphans
 
 # Build explicit image targets; do not force Vite/HMR when HTTPS was selected.
-build:
+build: setup
+
+images:
 	$(DC) build app composer node
 
 rebuild: build
-	$(DC) up -d --force-recreate
+	$(DC) up -d --wait --wait-timeout 120 --force-recreate
 
 ps:
 	$(DC) ps

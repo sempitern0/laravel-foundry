@@ -77,7 +77,7 @@ Linux/macOS/WSL:
 sh scripts/setup.sh svelte
 ```
 
-**Existing `app/`:** setup asks whether to keep the current installation or archive and replace it. It does not silently delete code or database volumes. The first run downloads official starter code and dependencies, removes Sail, sets up the chosen database, migrates and prepares assets. First setup may take time; daily startup should not repeat it.
+**Existing `app/`:** setup/build preserve the current installation without a keep/replace prompt. Replacement requires an explicit, confirmed `make reset-project`. The first run downloads official starter code and dependencies, removes Sail, sets up the chosen database, migrates and prepares assets. First setup may take time; daily startup should not repeat it.
 
 ## Architecture
 
@@ -116,7 +116,7 @@ The PHP-FPM runtime does not carry Composer or npm. The disposable Composer tool
 | `make stop` / `make start` | Quick daily pause/resume without recreating containers |
 | `make down` | Stop and remove containers/networks; **keep volumes** |
 | `make restart` | Stop/start existing containers |
-| `make rebuild` | Explicit image rebuild after Dockerfile changes |
+| `make images` | Image-only build after Dockerfile changes |
 | `make ps` / `make logs` | Inspect containers and logs |
 | `make artisan CMD="route:list"` | Laravel Artisan |
 | `make composer CMD="require vendor/package"` | Composer in disposable toolbox |
@@ -126,7 +126,7 @@ The PHP-FPM runtime does not carry Composer or npm. The disposable Composer tool
 | `make backup` | Export **local** database dump (not offsite backup) |
 | `make https-setup` | Local hostname/certificate guidance and Windows helper |
 | `make reset-project` | **Destructive** full reset of generated app and Compose volumes |
-| `make build` / `make rebuild` | Build images / rebuild and recreate selected running services |
+| `make build` / `make rebuild` | Restore configured environment, dependencies, migrations and assets / additionally recreate services |
 | `make config` | Validate Compose configuration |
 
 ### Fast startup versus readiness
@@ -224,3 +224,13 @@ The interactive wizard can record an optional `TENANCY_MODE`: `none`, `shared-db
 ### Tests and starter customization
 
 See [Testing and customizing starters](docs/TESTING_AND_STARTERS.md) for Docker test environments, CSRF 419 failures, product authorization tests, disabled Fortify routes with Wayfinder, and Svelte/font warnings. `make test CMD="--filter=AuthenticationTest"` runs a focused suite in the testing environment.
+
+### Resume a configured project on another device
+
+`make build` now restores the saved project choices, installs dependencies,
+compiles assets and starts the local environment. Commit the generated
+`.foundry.json` **with your product's app source and lockfiles**, never its `.env`
+or credentials. Existing local configuration is preserved until explicit
+reconfiguration/reset. Use `make images` for image-only builds.
+See [portable setup and rebuild](docs/PROJECT_REBUILD.md) for the clone workflow,
+Windows usage, reset behavior and local-secret requirements.
