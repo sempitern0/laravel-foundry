@@ -2,6 +2,10 @@
 set -eu
 root=$(pwd)
 if [ -f app/artisan ]; then exit 0; fi
+if [ -f .foundry.json ]; then
+  echo 'Configured project has no app/artisan. Restore its source before setup.' >&2
+  exit 2
+fi
 if [ -f .foundry-setup-pending ]; then
   [ -f .env ] || { echo 'Setup pendiente sin .env; recupera su configuracion.' >&2; exit 2; }
   saved=$(tr -d '\r\n' < .foundry-setup-pending)
@@ -9,10 +13,6 @@ if [ -f .foundry-setup-pending ]; then
   [ -n "$saved" ] && [ "$current" = "$saved" ] || { echo 'Setup pendiente con identidad diferente; revisa .env.' >&2; exit 2; }
   echo "Resuming incomplete setup: $saved"
   exit 0
-fi
-if [ -f .foundry.json ]; then
-  echo 'Configured project has no app/artisan. Restore its source before setup.' >&2
-  exit 2
 fi
 if [ -d app ] && [ -n "$(find app -mindepth 1 -maxdepth 1 ! -name node_modules ! -name vendor -print -quit)" ]; then
   echo 'app/ contains files but no artisan; refusing to overwrite.' >&2
