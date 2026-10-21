@@ -9,7 +9,9 @@ function Invoke-Compose {
     param([string[]]$Arguments)
     & docker compose @Arguments
     if ($LASTEXITCODE -ne 0) {
-        throw "docker compose $($Arguments -join ' ') failed with exit code $LASTEXITCODE"
+        Write-Host "ERROR Docker Compose (codigo $LASTEXITCODE): $($Arguments -join ' ')" -ForegroundColor Red
+        Write-Host 'Consulta make logs y reintenta make setup; no se sobrescribira el codigo Laravel.' -ForegroundColor Yellow
+        throw "Docker Compose termino con codigo $LASTEXITCODE."
     }
 }
 
