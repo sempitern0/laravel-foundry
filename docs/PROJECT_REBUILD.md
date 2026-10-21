@@ -101,3 +101,21 @@ La carpeta `app/vendor/` del host ya no es la fuente de dependencias para
 contenedores de desarrollo. El volumen se crea automáticamente, sin borrar
 código fuente ni datos. Nunca utilices `docker compose down -v` como remedio
 para una instalación lenta.
+
+## Diferenciar una instalación nueva de un proyecto existente
+
+Antes del primer comando Docker, `make setup` diferencia estos escenarios:
+
+- Checkout nuevo sin `app/artisan` ni `.foundry.json`: inicializa `.env` desde
+  `.env.example`, asigna un `PROJECT_NAME` único y vuelve a mostrar el wizard.
+  Si había un `.env` antiguo, lo copia a `app-backups/` antes de sustituirlo.
+- Proyecto existente con `app/artisan`: conserva configuración, código y datos.
+  Utiliza `make build` para reanudarlo.
+- `.foundry.json` presente pero sin `app/artisan`, o `app/` con archivos
+  inesperados: detiene la instalación. Debes recuperar la aplicación o crear
+  un checkout limpio; no se borran esos archivos ni los volúmenes antiguos.
+
+El identificador Compose se genera antes de levantar cualquier contenedor, para
+impedir que dos proyectos nuevos compartan por accidente los volúmenes de
+PostgreSQL, Redis o las dependencias. No se ejecuta `docker compose down -v`
+ni se eliminan recursos de otros proyectos.
