@@ -119,3 +119,34 @@ El identificador Compose se genera antes de levantar cualquier contenedor, para
 impedir que dos proyectos nuevos compartan por accidente los volúmenes de
 PostgreSQL, Redis o las dependencias. No se ejecuta `docker compose down -v`
 ni se eliminan recursos de otros proyectos.
+
+## Resumen al iniciar los servicios
+
+`make setup`, `make up`, `make up-wait` y `make start` muestran un
+informe de la configuración y de los servicios detectados. Puedes consultarlo
+sin reiniciar ni modificar nada con:
+
+```sh
+make status
+```
+
+El informe incluye proyecto, starter, base de datos, nombre de la base,
+motor de colas, correo, panel de administración de BD, HTTPS, tenancy
+(únicamente blueprint), perfiles y estado *running* de los servicios.
+Muestra URLs solo cuando el servicio correspondiente está funcionando:
+
+- Laravel HTTP: `http://localhost:HTTP_PORT`; HTTPS con Caddy:
+  `https://LOCAL_DOMAIN[:HTTPS_PORT]`.
+- Mailpit: `http://localhost:MAILPIT_PORT` cuando se utiliza Mailpit.
+- pgweb, phpMyAdmin o Adminer: `http://localhost:DB_UI_PORT`,
+  según el panel elegido.
+- Vite/HMR aparece únicamente como herramienta de desarrollo si su
+  contenedor está en marcha y el proyecto no usa HTTPS.
+
+Los workers, Redis y la base de datos figuran como servicios, pero no se
+inventan GUIs que no existen. Tampoco se muestran las contraseñas, claves
+de Laravel, secretos SMTP ni credenciales de la base de datos. Un contenedor
+running **no garantiza** que la aplicación web responda; para comprobar la
+disponibilidad real utiliza `make up-wait` y las pruebas HTTP.
+La primera configuración local HTTPS puede requerir `make https-setup`
+para registrar el hostname y confiar en la CA local.
