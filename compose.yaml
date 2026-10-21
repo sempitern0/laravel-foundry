@@ -9,6 +9,8 @@ x-runtime: &runtime
   working_dir: /var/www/html
   volumes:
     - ./app:/var/www/html
+    # Keep PHP dependencies on Linux storage, not a Windows bind mount.
+    - composer_vendor:/var/www/html/vendor
   # Laravel .env and PHPUnit select APP_ENV; do not pin it in the container.
   networks: [internal]
 # Laravel Composer hooks may invoke npm, so the disposable tooling target
@@ -22,6 +24,7 @@ x-tooling: &tooling
   working_dir: /var/www/html
   volumes:
     - ./app:/var/www/html
+    - composer_vendor:/var/www/html/vendor
     - ./scripts:/opt/letsgo:ro
     - ./:/workspace
     - node_modules:/var/www/html/node_modules
@@ -105,6 +108,7 @@ services:
       npm_config_progress: "false"
     volumes:
       - ./app:/var/www/html
+      - composer_vendor:/var/www/html/vendor
       - node_modules:/var/www/html/node_modules
       - npm_cache:/tmp/npm-cache
       - ./scripts/npm-ensure.sh:/opt/letsgo/npm-ensure.sh:ro
@@ -207,6 +211,7 @@ networks:
   # Downloads require egress. Neither network is a full security boundary.
   devtools:
 volumes:
+  composer_vendor:
   pgdata:
   mariadb_data:
   mysql_data:
