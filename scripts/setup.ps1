@@ -60,17 +60,6 @@ try {
     }
     Compose -Cmd @('up','-d')
     Compose -Cmd @('ps')
-    Write-Host ''
-    Write-Host "HTTP:     http://localhost:$($config['HTTP_PORT'])"
-    if ($config['HTTPS_ENABLED'] -eq '1') {
-        $urlPort = if ($config['HTTPS_PORT'] -eq '443') { '' } else { ":$($config['HTTPS_PORT'])" }
-        Write-Host "HTTPS:    https://$($config['LOCAL_DOMAIN'])$urlPort"
-        Write-Host 'Windows helper: make https-setup (configures hosts and offers to trust the local CA).'
-        Write-Host "Hosts:    127.0.0.1 $($config['LOCAL_DOMAIN'])"
-        Write-Host 'Trust Caddy local root CA only after verifying it belongs to your own Docker deployment.'
-    }
-    if ($config['TENANCY_MODE'] -ne 'none') {
-        Write-Host "SaaS blueprint: $($config['TENANCY_MODE']). Local alpha/beta subdomains: make tenancy-check."
-        Write-Host 'This does not implement tenant isolation in Laravel; see docs/SAAS.md.'
-    }
+    & (Join-Path $PSScriptRoot 'status.ps1')
+
 } finally { Pop-Location }
