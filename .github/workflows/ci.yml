@@ -253,6 +253,9 @@ jobs:
       - name: Check fresh starter mountpoint safety on Windows
         shell: powershell
         run: ./tests/app-source-guard.ps1
+      - name: Execute status summary in Windows PowerShell 5.1
+        shell: powershell
+        run: ./tests/status.ps1
       - name: Validate prerequisites installer PowerShell syntax
         shell: powershell
         run: |
