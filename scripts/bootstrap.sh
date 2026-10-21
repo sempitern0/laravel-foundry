@@ -1,13 +1,14 @@
 #!/usr/bin/env sh
 set -eu
 
-[ -f .env ] || cp .env.example .env
 command -v docker >/dev/null 2>&1 || { echo "Docker is required." >&2; exit 1; }
 docker compose version >/dev/null 2>&1 || { echo "Docker Compose v2 is required." >&2; exit 1; }
 
+[ -f .env ] || cp .env.example .env
+
 starter="${1:-}"
 if [ -f app/artisan ]; then starter=laravel; fi
-if [ -z "$starter" ] && [ -f .foundry-starter ]; then starter=$(cat .foundry-starter); fi
+if [ -z "$starter" ] && [ -f .foundry-starter ]; then starter=$(tr -d '\r\n' < .foundry-starter); fi
 if [ -z "$starter" ]; then
   if [ -t 0 ]; then
     printf '\nChoose your Laravel starter:\n' >&2

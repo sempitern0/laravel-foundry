@@ -2,15 +2,18 @@
 set -eu
 cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 mode=${1:-run}
+case "$mode" in run|setup) :;; *) echo 'Expected run or setup.' >&2; exit 2;; esac
 [ -f .env ] || { echo 'ERROR: falta .env; ejecuta make setup.' >&2; exit 1; }
-val() { sed -n "s/^$1=//p" .env | tail -n 1 | sed 's/^"//;s/"$//'; }
+val() { sed -n "s/^$1=//p" .env | tail -n 1 | tr -d '\r' | sed 's/^"//;s/"$//'; }
 name=$(val PROJECT_NAME); db=$(val DB_ENGINE); queue=$(val QUEUE_ENGINE)
 mail=$(val MAIL_ENGINE); ui=$(val DB_UI); https=$(val HTTPS_ENABLED)
+tenancy=$(val TENANCY_MODE); tenancy=${tenancy:-none}
 case "$name" in ''|[!a-z]*|*[!a-z0-9_-]*) echo 'ERROR: PROJECT_NAME no valido.' >&2; exit 1;; esac
 case "$db" in postgres|mariadb|mysql|sqlite) :;; *) echo 'ERROR: DB_ENGINE invalido.' >&2;exit 1;; esac
 case "$queue" in sync|database|redis) :;; *) echo 'ERROR: QUEUE_ENGINE invalido.' >&2;exit 1;; esac
 case "$mail" in mailpit|log|smtp) :;; *) echo 'ERROR: MAIL_ENGINE invalido.' >&2;exit 1;; esac
 case "$ui" in none|pgweb|phpmyadmin|adminer) :;; *) echo 'ERROR: DB_UI invalido.' >&2;exit 1;; esac
+case "$tenancy" in none|shared-db|database-per-tenant) :;; *) echo 'ERROR: TENANCY_MODE invalido.' >&2;exit 1;; esac
 case "$https" in 0|1) :;; *) echo 'ERROR: HTTPS_ENABLED invalido.' >&2;exit 1;; esac
 if { [ "$db" = sqlite ] && [ "$ui" != none ]; } || { [ "$ui" = pgweb ] && [ "$db" != postgres ]; } || { [ "$ui" = phpmyadmin ] && [ "$db" != mysql ] && [ "$db" != mariadb ]; }; then
  echo 'ERROR: DB_UI incompatible con DB_ENGINE.' >&2;exit 1
@@ -24,7 +27,7 @@ fi
 # Compare against the last successful local setup (credentials never stored).
 if [ -f .foundry-runtime-state ]; then
   for key in PROJECT_NAME DB_ENGINE DB_DATABASE; do
-    previous=$(sed -n "s/^$key=//p" .foundry-runtime-state | tail -n 1)
+    previous=$(sed -n "s/^$key=//p" .foundry-runtime-state | tail -n 1 | tr -d '\r')
     current=$(val "$key")
     if [ -n "$previous" ] && [ "$previous" != "$current" ]; then
       echo "AVISO: $key ha cambiado ($previous -> $current). Los datos siguen en los volumenes anteriores." >&2

@@ -2,7 +2,7 @@
 set -eu
 cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 [ -f .env ] || { echo "Missing .env; run setup" >&2; exit 1; }
-getval() { sed -n "s/^$1=//p" .env | head -n 1 | tr -d '"'; }
+getval() { sed -n "s/^$1=//p" .env | tail -n 1 | tr -d '\r' | sed 's/^"//;s/"$//'; }
 mode=$(getval TENANCY_MODE)
 [ -n "$mode" ] && [ "$mode" != none ] || { echo 'SaaS blueprint disabled; reconfigure setup.' >&2; exit 2; }
 domain=$(getval LOCAL_DOMAIN)

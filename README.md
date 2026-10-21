@@ -194,6 +194,12 @@ Reset requires typing `RESET <PROJECT_NAME>`. It removes the generated `app/`, r
 
 ## Contributing
 
+Unix scripts run with POSIX `sh` (including Bash and Debian/Ubuntu's Dash).
+Setup checks Docker CLI, Compose and Engine availability before changing local
+configuration. Windows CRLF `.env` files are supported, and rebuilds preserve an
+existing `APP_KEY`. Run `python3 tests/unix-portability.py` for isolated regression
+checks with mocked Docker/curl; this does not replace a real container build.
+
 Issues and pull requests are welcome. Test shell paths on Linux/WSL and PowerShell paths on Windows when modifying setup; do not commit application source into the pristine template. Before proposing infrastructure changes, validate `docker compose config -q` and run the CI workflow.
 
 ## License

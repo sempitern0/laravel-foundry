@@ -7,7 +7,7 @@ else cyan=''; green=''; yellow=''; dim=''; reset=''; fi
 cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 [ -f .env ] || { echo 'Foundry: missing .env; run make setup.' >&2; exit 1; }
 value() {
-  sed -n "s/^$1=//p" .env | tail -n 1 | sed 's/^"//;s/"$//'
+  sed -n "s/^$1=//p" .env | tail -n 1 | tr -d '\r' | sed 's/^"//;s/"$//'
 }
 setting() {
   v=$(value "$1")

@@ -3,7 +3,7 @@ set -eu
 cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 [ -f .env ] || { echo "Missing root .env" >&2; exit 1; }
 
-getval() { sed -n "s/^$1=//p" .env | head -n 1; }
+getval() { sed -n "s/^$1=//p" .env | tail -n 1 | tr -d '\r' | sed 's/^"//;s/"$//'; }
 username="$(getval DB_USERNAME)"
 database="$(getval DB_DATABASE)"
 [ -n "$username" ] && [ -n "$database" ] || { echo "Missing DB settings." >&2; exit 1; }
