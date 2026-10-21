@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate POSIX scripts
-        run: sh -n scripts/https-setup.sh scripts/bootstrap.sh scripts/checkout-starter.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh scripts/tenancy-check.sh
+        run: sh -n scripts/prepare-fresh-project.sh scripts/https-setup.sh scripts/bootstrap.sh scripts/checkout-starter.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh scripts/tenancy-check.sh
       - name: Test HTTPS certificate export retries
         run: python3 tests/https-export.py
       - name: Test container healthcheck variable interpolation
@@ -28,6 +28,7 @@ jobs:
         run: |
           php tests/project-config.php
           python3 tests/build-resume.py
+          sh tests/fresh-setup.sh
           sh -n scripts/prepare-node-volumes.sh scripts/prepare-composer-volume.sh
           php -l scripts/project-config.php
           php -l scripts/prepare-app.php
