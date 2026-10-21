@@ -234,3 +234,12 @@ or credentials. Existing local configuration is preserved until explicit
 reconfiguration/reset. Use `make images` for image-only builds.
 See [portable setup and rebuild](docs/PROJECT_REBUILD.md) for the clone workflow,
 Windows usage, reset behavior and local-secret requirements.
+
+
+### Versioning application source
+
+Foundry's root `.gitignore` intentionally allows application source under
+`app/` to be versioned once a starter is generated. It still excludes the
+local Laravel environment, dependencies, runtime storage, SQLite files and
+compiled assets. Commit application source and lockfiles alongside
+`.foundry.json` for reproducible clones; never commit secrets.
