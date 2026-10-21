@@ -64,6 +64,11 @@ jobs:
           git check-ignore -q app/storage/logs/laravel.log
           git check-ignore -q app/database/database.sqlite
           git check-ignore -q app/public/build/manifest.json
+          git check-ignore -q .foundry-setup-pending
+          git check-ignore -q .foundry-runtime-state
+          git check-ignore -q app/.env.local
+          if git check-ignore -q app/composer.lock; then echo 'Composer lockfile must be versioned'; exit 1; fi
+          if git check-ignore -q app/resources/js/app.ts; then echo 'Application source must be versioned'; exit 1; fi
       - name: Ensure the wizard precedes starter checkout
         run: |
           python3 - <<'PY'
