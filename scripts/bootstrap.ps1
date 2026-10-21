@@ -3,6 +3,7 @@ param([string]$Starter = '')
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'app-source-guard.ps1')
 
 function Invoke-Compose {
     param([string[]]$Arguments)
@@ -81,7 +82,7 @@ try {
     if (-not (Test-Path -LiteralPath 'app')) {
         New-Item -ItemType Directory -Path 'app' | Out-Null
     }
-    if (@(Get-ChildItem -LiteralPath 'app' -Force | Where-Object { $_.Name -ne 'node_modules' }).Count -gt 0) {
+    if (@(Get-FoundryUnexpectedAppEntries -AppPath 'app').Count -gt 0) {
         throw 'app/ is not empty but contains no artisan file. Refusing to overwrite.'
     }
 
