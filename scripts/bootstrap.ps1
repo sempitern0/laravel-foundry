@@ -73,6 +73,7 @@ try {
         Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'composer', 'sh', '-c', 'node --version && npm --version')
 
         Invoke-Compose -Arguments @('run','--rm','--no-deps','composer','php','/opt/letsgo/prepare-app.php')
+        Write-Host 'Instalando dependencias PHP en el volumen Docker (primera instalación puede tardar)...'
         Invoke-Compose -Arguments @('run','--rm','--no-deps','composer','composer','install','--no-interaction','--prefer-dist','--no-progress')
         return
     }
