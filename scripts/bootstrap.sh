@@ -48,6 +48,7 @@ if [ -f app/artisan ]; then
   docker compose run --rm --no-deps composer sh -c 'node --version && npm --version'
 
   docker compose run --rm --no-deps composer php /opt/letsgo/prepare-app.php
+  printf '%s\n' 'Installing PHP dependencies in the Docker volume; the first install may take a while...'
   docker compose run --rm --no-deps composer composer install --no-interaction --prefer-dist --no-progress
   exit 0
 fi
@@ -70,6 +71,7 @@ if grep -Eq '"laravel/sail"[[:space:]]*:' app/composer.json; then
   docker compose run --rm --no-deps composer composer remove laravel/sail --dev --no-update --no-scripts --no-plugins --no-interaction --no-progress
 fi
 docker compose run --rm --no-deps composer php /opt/letsgo/prepare-app.php
+printf '%s\n' 'Installing PHP dependencies in the Docker volume; the first install may take a while...'
 docker compose run --rm --no-deps composer composer install --no-interaction --prefer-dist --no-progress
 printf '%s\n' "$starter" > app/.letsgo-starter
 echo "Laravel scaffold ready."
