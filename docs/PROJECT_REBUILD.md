@@ -2,9 +2,11 @@
 
 After the first `make setup`, Foundry writes `.foundry.json`. Commit this file
 **in your product repository**, alongside its application source and Composer/npm
-lockfiles. The infrastructure template itself continues to ignore generated
-`app/`; a product repository must remove that blanket ignore and use Laravel's
-application `.gitignore` to exclude `.env`, vendor, node_modules and runtime files.
+lockfiles. The template now tracks generated `app/` source by default. Runtime directories,
+local `.env` files, dependencies, SQLite databases and compiled assets remain
+ignored at the root; no manual change to `.gitignore` is needed after cloning.
+The pristine template does not contain Laravel source, so there is nothing to
+commit until a starter is installed.
 Do not copy or commit the two `.env` files.
 
 On another development device:
@@ -58,3 +60,12 @@ Compared against `9d2774cc84adac473fcc8892c4706e7c57ba0913`, with Foundry based 
   forced Wayfinder command, application auth changes or production overlays copied.
 - Existing app dependencies use Composer install and npm ci with lockfiles.
   Starter-specific scripts still run through the application's own package scripts.
+
+## Generic reliability fixes from Private NAS
+
+- PHP Redis extension is installed in the shared base image and available to the app, CLI workers and tools when Redis queues are selected. Merely starting a Redis container is not sufficient without the client extension.
+- Nginx uses Docker DNS to refresh the PHP-FPM upstream after replacing the app container (prevents stale-address 502 errors).
+- `make test` sets an isolated Laravel application environment and an independent testing configuration cache. The app itself must still ship a safe `phpunit.xml` (e.g. SQLite in-memory, array cache/sessions and sync queue); the template does not overwrite the chosen starter's test configuration.
+- CI validates that application source is not ignored and that environment secrets and runtime files remain excluded.
+
+These are framework infrastructure conventions; music-specific catalog adapters, acoustic fingerprints, scan workers and private dashboards are deliberately **not** part of Foundry.
