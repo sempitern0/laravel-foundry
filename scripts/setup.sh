@@ -3,7 +3,7 @@ set -eu
 cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 # The wizard needs to run before the starter download; a failed clone must not
 # suppress infrastructure questions. app/ can be empty at this point.
-php scripts/prepare-fresh-project.php
+sh scripts/prepare-fresh-project.sh
 [ -f .env ] || cp .env.example .env
 docker compose build composer
 docker compose run --rm --no-deps composer php /opt/letsgo/env-sync.php --root-only
