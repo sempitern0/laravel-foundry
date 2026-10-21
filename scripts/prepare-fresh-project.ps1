@@ -8,6 +8,9 @@ function Initialize-FoundryFreshProject {
     $app = Join-Path $Root 'app'
     $manifest = Join-Path $Root '.foundry.json'
     if (Test-Path -LiteralPath (Join-Path $app 'artisan')) { return $false }
+    if (Test-Path -LiteralPath $manifest) {
+        throw 'Existe .foundry.json pero falta app/artisan. Recupera el codigo antes de reiniciar setup.'
+    }
     $pending = Join-Path $Root '.foundry-setup-pending'
     if (Test-Path -LiteralPath $pending) {
         $savedName = [IO.File]::ReadAllText($pending).Trim()
@@ -19,9 +22,6 @@ function Initialize-FoundryFreshProject {
         }
         Write-Host "Reanudando setup pendiente de $savedName sin perder las opciones guardadas."
         return $false
-    }
-    if (Test-Path -LiteralPath $manifest) {
-        throw 'Este repositorio contiene .foundry.json pero falta app/artisan. Es un proyecto configurado incompleto; recupera el código antes de iniciar setup.'
     }
 
     if (Test-Path -LiteralPath $app) {
