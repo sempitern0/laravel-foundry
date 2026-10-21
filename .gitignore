@@ -1,7 +1,8 @@
 /certs/
 /deploy/*.env
 /caddy-local-root.crt
-/app/
+# Application source is intentionally versioned in projects created from Foundry.
+# A pristine template has no app/ source to commit until a starter is installed.
 /app-backups/
 .env
 /app/.env
@@ -11,6 +12,14 @@
 /app/node_modules/
 /app/public/build/
 /app/public/hot
+/app/public/storage
+/app/bootstrap/cache/*
+!/app/bootstrap/cache/.gitignore
+/app/database/*.sqlite
+/app/database/*.sqlite-*
+/app/storage/**
+!/app/storage/**/
+!/app/storage/**/.gitignore
 /app/storage/*.key
 /app/.phpunit.result.cache
 /app/.phpunit.cache/
@@ -29,7 +38,7 @@ yarn-error.log
 
 # Laravel 4 specific
 bootstrap/compiled.php
-app/storage/
+# Application runtime is covered by the /app/storage/** rules above.
 
 # Laravel 5 & Lumen specific
 public/storage
