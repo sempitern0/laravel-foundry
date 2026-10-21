@@ -178,3 +178,15 @@ tambien estas dos marcas locales. No elimina backups almacenados fuera de los
 volumenes del proyecto. Errores de Composer o Docker detienen el setup,
 conservan la configuracion anterior y muestran el comando que fallo y el
 siguiente paso para consultar logs y reintentar.
+
+## Diagnostico HTTP y casos limite
+
+El chequeo posterior a `make up-wait` distingue respuestas correctas (2xx),
+redirecciones (3xx), acceso autenticado (401/403), rutas inexistentes (404),
+fallos del servidor (5xx) y conexiones fallidas. Si el starter no publica
+`/up` (404) o la ruta no responde, intenta la raiz `/`. Un error 500 en
+`/up` no se oculta comprobando otra ruta. Las redirecciones no se siguen:
+no se desactiva la validacion de certificados locales. Para diagnosticar,
+consulta `docker compose logs --tail=80 web app` y `make artisan CMD="about"`.
+La prueba `tests/http-health.sh` ejecuta la matriz de respuestas simuladas
+sin necesidad de Docker.
