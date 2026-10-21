@@ -1,7 +1,13 @@
 [CmdletBinding()]
-param([string]$Root = (Split-Path -Parent $PSScriptRoot))
+param([string]$Root)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+
+# PowerShell 5.1 evaluates parameter defaults before $PSScriptRoot is
+# populated. Resolve the script directory after parameter binding instead.
+if ([string]::IsNullOrWhiteSpace($Root)) {
+    $Root = Split-Path -Parent $PSScriptRoot
+}
 
 $envPath = Join-Path $Root '.env'
 if (-not (Test-Path -LiteralPath $envPath)) {
