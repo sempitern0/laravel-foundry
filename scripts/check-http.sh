@@ -8,7 +8,7 @@ if ! command -v curl >/dev/null 2>&1; then
   exit 0
 fi
 for path in /up /; do
-  code=$(curl -sS -L -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:$port$path" 2>/dev/null || :)
+  code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:$port$path" 2>/dev/null || :)
   case "$code" in 2??|3??|4??) echo '[OK] Laravel responde por HTTP.'; exit 0;; esac
 done
 echo 'AVISO: Laravel no responde correctamente; revisa make logs.' >&2
