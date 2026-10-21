@@ -106,7 +106,7 @@ migrate:
 	$(DC) exec app php artisan migrate
 
 test:
-	$(DC) exec -e APP_ENV=testing app php artisan test $(CMD)
+	$(DC) exec -e APP_ENV=testing -e APP_CONFIG_CACHE=cache/config.testing.php app php artisan test $(CMD)
 
 # Composer lives in the toolbox, not in PHP-FPM. Check availability of
 # lint:check for the selected Laravel starter before invoking this target.
