@@ -239,6 +239,9 @@ jobs:
       - name: Test native Compose output and exit codes on Windows PowerShell 5.1
         shell: powershell
         run: ./tests/https-compose.ps1
+      - name: Verify Docker Desktop preflight and actionable error messages
+        shell: powershell
+        run: ./tests/docker-preflight.ps1
       - name: Validate prerequisites installer PowerShell syntax
         shell: powershell
         run: |
