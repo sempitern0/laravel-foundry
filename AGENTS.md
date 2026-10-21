@@ -14,7 +14,7 @@ Build maintainable, secure, idiomatic **PHP + Laravel** applications. Prefer sma
 
 ## Repository topology and first 90 seconds
 
-Laravel Foundry's root is the **Docker/Compose infrastructure template**; generated applications live in ignored `app/`. This root AGENTS.md is tracked by the template. When making a *separate application repository*, also copy/adapt this guidance there, or provide an `app/AGENTS.md` appropriate to that codebase.
+Laravel Foundry's root is the **Docker/Compose infrastructure template**; generated applications live in versionable `app/`. This root AGENTS.md is tracked by the template. When making a *separate application repository*, also copy/adapt this guidance there, or provide an `app/AGENTS.md` appropriate to that codebase.
 
 Before writing code, do the minimum relevant reconnaissance:
 
@@ -100,7 +100,7 @@ Inspect `app/package.json`, `app/vite.config.*`, routes and actual source before
 - Keep public ports bound to `127.0.0.1` for local services; do not expose databases, Redis, phpMyAdmin, Pgweb or Adminer on `0.0.0.0`.
 - Update **together** when adding/removing a service: `compose.yaml`, setup wizard, both setup scripts if necessary, environment examples, app configurator, reset profiles, Makefile, CI and README.
 - Treat MySQL and MariaDB as separate services with separate data volumes. Do not assume a container rename migrates data.
-- Keep `app/` ignored in this **template**. A product repo must version app source and lockfiles while ignoring credentials and dependencies.
+- Keep starter source under `app/` trackable; ignore dependencies, local credentials, runtime and generated output. Do not commit starter source in the pristine template.
 - Do not auto-install OS packages, edit `hosts` or trust a CA without explicit user confirmation.
 - `make reset-project` and removal of volumes are destructive and require the current confirmation policy. Do not use them as a debugging shortcut.
 
@@ -144,7 +144,7 @@ make env-sync
 
 - Read [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) before changing staging/production workflows.
 - Do not claim local dev is *identical* to production when using Vite HMR, debug mode, a different database engine or different queue/cache services. Verify a **production-parity run with release images**.
-- Commit migration history and Composer/npm lockfiles in the separate product repository. Do not version runtime secrets or generated `app/` in the infrastructure template.
+- Commit migration history and Composer/npm lockfiles in the separate product repository. Do not version runtime secrets; commit generated application source only in a project repository.
 - Build once per commit; publish immutable PHP and web image tags/digests and promote **those exact artifacts** from staging to production.
 - Do not copy live production secrets, raw data or persisted volumes into local/staging. Use safe synthetic or appropriately sanitized fixtures.
 - Give staging and production unique project names, env files, APP_KEY and independent database/storage volumes; never run `down -v` against either during routine deployments.

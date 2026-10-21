@@ -24,7 +24,7 @@ try {
         throw 'Reset requires an interactive terminal.'
     }
 
-    Write-Warning "This permanently removes the generated app/, root .env and ALL Docker volumes belonging to Compose project '$project' (database, Redis, npm caches, Caddy CA)."
+    Write-Warning "This permanently removes the generated app/, root .env, .foundry.json and ALL Docker volumes belonging to Compose project '$project' (database, Redis, npm caches, Caddy CA)."
     Write-Host 'Local backups/ and app-backups/ are preserved. Windows hosts and trusted certificates are not changed.'
     $expected = "RESET $project"
     $confirmation = Read-Host "Type exactly '$expected' to continue"
@@ -43,7 +43,7 @@ try {
 
     # Delete only known generated paths, never source files, backup archives or
     # arbitrary paths. Refuse directory junctions/symlinks.
-    foreach ($relative in @('app', '.env', 'certs/caddy-local-root.crt', 'caddy-local-root.crt')) {
+    foreach ($relative in @('app', '.env', '.foundry.json', '.foundry-starter', 'certs/caddy-local-root.crt', 'caddy-local-root.crt', '.foundry-setup-pending', '.foundry-runtime-state')) {
         $path = Join-Path $root $relative
         if (Test-Path -LiteralPath $path) {
             $item = Get-Item -LiteralPath $path -Force

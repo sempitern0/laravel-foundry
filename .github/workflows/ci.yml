@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate POSIX scripts
-        run: sh -n scripts/https-setup.sh scripts/bootstrap.sh scripts/checkout-starter.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh scripts/tenancy-check.sh
+        run: sh -n scripts/setup-checkpoint.sh scripts/preflight.sh scripts/check-http.sh scripts/status.sh scripts/prepare-fresh-project.sh scripts/https-setup.sh scripts/bootstrap.sh scripts/checkout-starter.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh scripts/tenancy-check.sh
       - name: Test HTTPS certificate export retries
         run: python3 tests/https-export.py
       - name: Test container healthcheck variable interpolation
@@ -24,10 +24,24 @@ jobs:
             echo "Remove laravel/sail from composer.lock."
             exit 1
           fi
+      - name: Test portable configuration and resumed builds
+        run: |
+          php tests/project-config.php
+          python3 tests/build-resume.py
+          sh tests/fresh-setup.sh
+          sh tests/status.sh
+          sh tests/http-health.sh
+          sh tests/preflight.sh
+          sh tests/setup-recovery.sh
+          sh -n scripts/prepare-node-volumes.sh scripts/prepare-composer-volume.sh
+          php -l scripts/project-config.php
+          php -l scripts/prepare-app.php
       - name: Validate Make recipes
         run: |
           make -n setup STARTER=svelte
           make -n up
+          make -n status
+          make -n check
           make -n up-wait
           make -n start
           make -n stop
@@ -37,13 +51,24 @@ jobs:
           make -n lint
           make -n https-setup && make -n env-sync && make -n reset-project
           make -n tenancy-check
-      - name: Ensure the template has no tracked application
+      - name: Ensure source can be tracked but runtime files remain ignored
         run: |
           if git ls-files app/ | grep -q .; then
             echo "Generated app/ must not be committed to the template."
             exit 1
           fi
-          git check-ignore app/artisan
+          if git check-ignore -q app/artisan; then echo "Application source is unexpectedly ignored"; exit 1; fi
+          git check-ignore -q app/vendor/example.php
+          git check-ignore -q app/node_modules/example.js
+          git check-ignore -q app/.env
+          git check-ignore -q app/storage/logs/laravel.log
+          git check-ignore -q app/database/database.sqlite
+          git check-ignore -q app/public/build/manifest.json
+          git check-ignore -q .foundry-setup-pending
+          git check-ignore -q .foundry-runtime-state
+          git check-ignore -q app/.env.local
+          if git check-ignore -q app/composer.lock; then echo 'Composer lockfile must be versioned'; exit 1; fi
+          if git check-ignore -q app/resources/js/app.ts; then echo 'Application source must be versioned'; exit 1; fi
       - name: Ensure the wizard precedes starter checkout
         run: |
           python3 - <<'PY'
@@ -170,6 +195,7 @@ jobs:
       - name: Build and smoke-test PHP development toolchain
         run: |
           docker compose build app composer node
+          docker compose run --rm --no-deps --entrypoint php app -r 'exit(extension_loaded("redis") ? 0 : 1);'
           docker compose run --rm --no-deps --user 0:0 composer sh -ec 'chown "$DEV_UID:$DEV_GID" /var/www/html/node_modules /tmp/npm-cache /tmp/composer'
           docker compose run --rm --no-deps composer sh -ec 'php -v && composer --version && node --version && npm --version && touch /var/www/html/node_modules/.cache-write-test && touch /tmp/npm-cache/.cache-write-test && touch /tmp/composer/.cache-write-test'
       - name: Forbid attribute-preserving copy onto Docker Desktop bind mounts
@@ -201,6 +227,11 @@ jobs:
       - name: Check Vite has PHP CLI for Wayfinder
         run: |
           docker compose --profile dev run --rm --no-deps --entrypoint sh node -ec 'php -v && node --version && npm --version && ! command -v composer'
+      - name: Verify shared Composer vendor volume
+        run: |
+          docker compose config | grep -q 'composer_vendor'
+          docker compose run --rm --no-deps --entrypoint sh composer -ec 'test -d /var/www/html/vendor && test -w /var/www/html/vendor'
+          docker compose --profile dev run --rm --no-deps --entrypoint sh node -ec 'test -d /var/www/html/vendor'
       - name: Verify shared dependencies and matching Linux libc
         run: |
           docker compose --profile dev run --rm --no-deps --entrypoint sh node -ec 'node --version && npm --version && test -f /var/www/html/node_modules/.cache-write-test && test -f /tmp/npm-cache/.cache-write-test'
@@ -225,6 +256,36 @@ jobs:
       - name: Test native Compose output and exit codes on Windows PowerShell 5.1
         shell: powershell
         run: ./tests/https-compose.ps1
+      - name: Verify Docker Desktop preflight and actionable error messages
+        shell: powershell
+        run: ./tests/docker-preflight.ps1
+      - name: Check fresh starter mountpoint safety on Windows
+        shell: powershell
+        run: ./tests/app-source-guard.ps1
+      - name: Execute status summary in Windows PowerShell 5.1
+        shell: powershell
+        run: ./tests/status.ps1
+      - name: Guard preflight against duplicated or truncated blocks
+        shell: powershell
+        run: |
+          $source = Get-Content scripts/preflight.ps1 -Raw
+          if (($source.Split(@('$owned = @{}'), [System.StringSplitOptions]::None).Count - 1) -ne 1) { throw 'Duplicate Docker ownership block' }
+          if (($source.Split(@("Write-Host '[OK] Configuracion y puertos locales comprobados."), [System.StringSplitOptions]::None).Count - 1) -ne 1) { throw 'Duplicate preflight completion block' }
+      - name: Exercise preflight validation in Windows PowerShell 5.1
+        shell: powershell
+        run: ./tests/preflight.ps1
+      - name: Exercise interrupted setup recovery on Windows
+        shell: powershell
+        run: ./tests/setup-recovery.ps1
+      - name: Check preflight configuration and HTTP command syntax
+        shell: powershell
+        run: |
+          $scripts = @('scripts/preflight.ps1','scripts/check-http.ps1')
+          foreach ($file in $scripts) {
+            $tokens = $null; $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file).Path, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count) { throw ($errors | Out-String) }
+          }
       - name: Validate prerequisites installer PowerShell syntax
         shell: powershell
         run: |

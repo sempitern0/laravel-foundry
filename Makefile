@@ -4,6 +4,9 @@ SETUP_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/
 BACKUP_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/backup.ps1
 RESET_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/reset-project.ps1
 HTTPS_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/https-setup.ps1
+STATUS_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/status.ps1
+PREFLIGHT_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/preflight.ps1
+HTTP_CHECK := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/check-http.ps1
 TENANCY_CHECK_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/tenancy-check.ps1
 else
 SHELL := /bin/sh
@@ -11,6 +14,9 @@ SETUP_SCRIPT := sh scripts/setup.sh
 BACKUP_SCRIPT := sh scripts/backup.sh
 RESET_SCRIPT := sh scripts/reset-project.sh
 HTTPS_SCRIPT := sh scripts/https-setup.sh
+STATUS_SCRIPT := sh scripts/status.sh
+PREFLIGHT_SCRIPT := sh scripts/preflight.sh
+HTTP_CHECK := sh scripts/check-http.sh
 TENANCY_CHECK_SCRIPT := sh scripts/tenancy-check.sh
 endif
 
@@ -20,15 +26,16 @@ STARTER ?=
 # Explicit all-profiles stop also removes containers started manually through a
 # profile not included in the current .env.
 ALL_PROFILES := --profile dev --profile tools --profile workers --profile scheduler --profile redis --profile https --profile postgres --profile mariadb --profile mysql --profile phpmyadmin --profile mailpit --profile pgweb --profile adminer
-.PHONY: help setup up up-detached up-wait up-logs start stop restart down build rebuild ps logs shell artisan composer npm migrate test lint backup env-sync https-setup reset-project worker scheduler redis config tenancy-check
+.PHONY: help check status setup reconfigure up up-detached up-wait up-logs start stop restart down build images rebuild ps logs shell artisan composer npm migrate test lint backup env-sync https-setup reset-project worker scheduler redis config tenancy-check
 
 help:
 	@echo "Laravel Foundry - self-hosted Laravel environments with Docker Compose"
 	@echo ""
 	@echo "Setup:       make setup [STARTER=laravel|svelte|vue|react|livewire]"
 	@echo "Lifecycle:   make up | up-wait | up-logs | start | stop | restart | down"
-	@echo "Images:      make build | rebuild"
-	@echo "Diagnostics: make ps | logs | config | shell"
+	@echo "Environment: make build | rebuild (restore settings, dependencies and assets)"
+	@echo "Images only: make images"
+	@echo "Diagnostics: make check | status | ps | logs | config | shell"
 	@echo "Laravel:     make artisan CMD='route:list' | migrate | test | lint"
 	@echo "Tooling:     make composer CMD='install' | npm CMD='run build'"
 	@echo "Optional:    make worker | scheduler | redis"
@@ -40,21 +47,35 @@ help:
 setup:
 	$(SETUP_SCRIPT) $(if $(strip $(STARTER)),$(if $(filter Windows_NT,$(OS)),-Starter "$(STARTER)","$(STARTER)"),)
 
+reconfigure:
+ifeq ($(OS),Windows_NT)
+	$(SETUP_SCRIPT) -Reconfigure
+else
+	FOUNDRY_WIZARD_MODE=--reconfigure $(SETUP_SCRIPT)
+endif
+
 # Detached startup is the default. Readiness is optional and explicit.
 up:
+	$(PREFLIGHT_SCRIPT)
 	$(DC) up -d
+	-$(STATUS_SCRIPT)
 
 up-detached: up
 
 up-wait:
+	$(PREFLIGHT_SCRIPT)
 	$(DC) up -d --wait --wait-timeout 120
+	-$(HTTP_CHECK)
+	-$(STATUS_SCRIPT)
 
 up-logs:
 	$(DC) up
 
 # Retain containers/networks for fast daily resume; no destructive operations.
 start:
+	$(PREFLIGHT_SCRIPT)
 	$(DC) start
+	-$(STATUS_SCRIPT)
 
 stop:
 	$(DC) stop
@@ -65,11 +86,19 @@ down:
 	$(DC) $(ALL_PROFILES) down --remove-orphans
 
 # Build explicit image targets; do not force Vite/HMR when HTTPS was selected.
-build:
+build: setup
+
+images:
 	$(DC) build app composer node
 
 rebuild: build
-	$(DC) up -d --force-recreate
+	$(DC) up -d --wait --wait-timeout 120 --force-recreate
+
+check:
+	$(PREFLIGHT_SCRIPT)
+
+status:
+	$(STATUS_SCRIPT)
 
 ps:
 	$(DC) ps
@@ -96,7 +125,7 @@ migrate:
 	$(DC) exec app php artisan migrate
 
 test:
-	$(DC) exec -e APP_ENV=testing app php artisan test $(CMD)
+	$(DC) exec -e APP_ENV=testing -e APP_CONFIG_CACHE=cache/config.testing.php app php artisan test $(CMD)
 
 # Composer lives in the toolbox, not in PHP-FPM. Check availability of
 # lint:check for the selected Laravel starter before invoking this target.

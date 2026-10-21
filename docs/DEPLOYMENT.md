@@ -2,7 +2,7 @@
 
 This is a **reference operating procedure**, not a push-button production release. For a comparison of DigitalOcean, Hetzner, Vultr, Linode, Forge, Laravel Cloud and App Platform, see [HOSTING_PROVIDERS.md](HOSTING_PROVIDERS.md). It explains how to develop against a stack comparable to production, test the *actual release artifacts* locally and in staging, and then promote those exact artifacts to production. Replace sample hosts, image tags and secrets with values for your product.
 
-> **Critical prerequisite:** Laravel Foundry is an infrastructure template and ignores `app/`. Create a **separate product repository** that commits Laravel code, migrations, `composer.lock`, `package-lock.json`, infrastructure and `AGENTS.md`. Do not simply remove the ignore rule on the template and publish private application data.
+> **Critical prerequisite:** Foundry allows tracking generated `app/` source but ignores secrets, dependencies and runtime files. Commit Laravel code, migrations and lockfiles in the product repository before building a release; never include private environment data.
 
 ## 1. What parity means
 
@@ -25,7 +25,7 @@ You should make **the behavior and runtime comparable**, not copy production cus
 ## 2. Create and version an application repository
 
 1. Run `make setup STARTER=svelte` (or another starter) in a clean Foundry checkout. Record your engine, frontend and optional services.
-2. Copy the template infrastructure and the **generated contents of `app/`** to a new Git repository for the product. Adjust its `.gitignore` so it **tracks application source**, while excluding `app/.env`, `vendor/`, `node_modules/`, caches, logs and generated secrets.
+2. Create a product repository with the template infrastructure and generated `app/` source. The root `.gitignore` already tracks application source while excluding local secrets, dependencies and generated files.
 3. Commit `composer.json`, `composer.lock`, `package.json`, `package-lock.json` and all migrations with the application. Keep the chosen starter's lockfile; never silently install arbitrary latest dependencies when reproducing a release.
 4. Copy/adapt `AGENTS.md` and record any architecture decisions or environment-specific integrations.
 5. Protect the default branch, run automated tests on pull requests and grant minimal CI permissions. Do not check in credentials, database dumps or production `.env` files.

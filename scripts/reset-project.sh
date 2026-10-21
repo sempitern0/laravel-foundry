@@ -12,7 +12,7 @@ case "$project" in
 esac
 [ -t 0 ] || { echo "Interactive terminal required for reset." >&2; exit 2; }
 
-printf 'PERMANENT RESET: remove app/, .env and all Docker volumes for %s\n' "$project"
+printf 'PERMANENT RESET: remove app/, .env, .foundry.json and all Docker volumes for %s\n' "$project"
 printf 'backups/ and app-backups/ will remain. hosts and OS certificate trust will remain unchanged.\n'
 printf 'Type exactly "RESET %s" to continue: ' "$project"
 IFS= read -r answer || exit 2
@@ -24,7 +24,7 @@ docker compose \
   --profile mariadb --profile mysql --profile phpmyadmin --profile postgres --profile mailpit --profile tools \
   down --volumes --remove-orphans
 
-for path in app .env certs/caddy-local-root.crt caddy-local-root.crt; do
+for path in app .env .foundry.json .foundry-starter certs/caddy-local-root.crt caddy-local-root.crt .foundry-setup-pending .foundry-runtime-state; do
     [ ! -L "$path" ] || { echo "Refusing symlink: $path" >&2; exit 1; }
     [ ! -e "$path" ] || { rm -rf -- "$path"; printf 'Removed: %s\n' "$path"; }
 done

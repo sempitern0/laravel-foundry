@@ -1,6 +1,6 @@
 # Hosting providers and deployment models for Laravel Foundry
 
-> **Scope:** vendor-neutral reference, verified against providers' public documentation in October 2026. This guide helps a product team **choose and adapt a deployment**, not provision accounts, guarantee provider pricing or change the local Foundry setup. Review [DEPLOYMENT.md](DEPLOYMENT.md) first for immutable releases, staging, production secrets, migrations and recovery.
+> **Scope:** vendor-neutral reference, This guide helps a product team **choose and adapt a deployment**, not provision accounts, guarantee provider pricing or change the local Foundry setup. Review [DEPLOYMENT.md](DEPLOYMENT.md) first for immutable releases, staging, production secrets, migrations and recovery.
 
 ## 1. Decide who operates the infrastructure
 

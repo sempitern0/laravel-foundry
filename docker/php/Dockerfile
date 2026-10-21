@@ -3,6 +3,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends git unzip libpq
  && docker-php-ext-configure gd --with-freetype --with-jpeg \
  && docker-php-ext-install -j"$(nproc)" pdo_pgsql pdo_mysql intl zip mbstring bcmath pcntl gd opcache \
  && rm -rf /var/lib/apt/lists/*
+# phpRedis is required when QUEUE_CONNECTION=redis; use the same extension in
+# PHP-FPM, worker and tooling images instead of relying on an optional image.
+RUN pecl install redis-6.3.0 && docker-php-ext-enable redis && php --ri redis >/dev/null
 WORKDIR /var/www/html
 FROM base AS development
 RUN cp "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"

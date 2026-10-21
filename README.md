@@ -10,7 +10,6 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docker Compose](https://img.shields.io/badge/orchestration-Docker%20Compose-2496ED?logo=docker&logoColor=white)](compose.yaml)
 [![PowerShell + POSIX](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-555)](#requirements)
-[![Status: Preview](https://img.shields.io/badge/status-preview-yellow)](https://github.com/sempitern0/laravel-foundry/pull/1)
 
 **Bring your own Laravel starter. No Sail, Herd, required SaaS, or paid local database.**
 
@@ -19,7 +18,7 @@
 </div>
 
 > [!IMPORTANT]
-> This is an **infrastructure template, not a Laravel application repository**. The generated `app/` directory is deliberately ignored by Git. Release/staging configurations are **reference starting points**, not a verified turnkey production deployment. Never commit secrets.
+> This is an **infrastructure template, not a Laravel application repository**. Generated application source under `app/` can be versioned; secrets, dependencies and runtime files remain ignored. Release/staging configurations are **reference starting points**, not a verified turnkey production deployment. Never commit secrets.
 
 ## At a glance
 
@@ -77,7 +76,7 @@ Linux/macOS/WSL:
 sh scripts/setup.sh svelte
 ```
 
-**Existing `app/`:** setup asks whether to keep the current installation or archive and replace it. It does not silently delete code or database volumes. The first run downloads official starter code and dependencies, removes Sail, sets up the chosen database, migrates and prepares assets. First setup may take time; daily startup should not repeat it.
+**Existing `app/`:** setup/build preserve the current installation without a keep/replace prompt. Replacement requires an explicit, confirmed `make reset-project`. The first run downloads official starter code and dependencies, removes Sail, sets up the chosen database, migrates and prepares assets. First setup may take time; daily startup should not repeat it.
 
 ## Architecture
 
@@ -116,7 +115,7 @@ The PHP-FPM runtime does not carry Composer or npm. The disposable Composer tool
 | `make stop` / `make start` | Quick daily pause/resume without recreating containers |
 | `make down` | Stop and remove containers/networks; **keep volumes** |
 | `make restart` | Stop/start existing containers |
-| `make rebuild` | Explicit image rebuild after Dockerfile changes |
+| `make images` | Image-only build after Dockerfile changes |
 | `make ps` / `make logs` | Inspect containers and logs |
 | `make artisan CMD="route:list"` | Laravel Artisan |
 | `make composer CMD="require vendor/package"` | Composer in disposable toolbox |
@@ -126,7 +125,7 @@ The PHP-FPM runtime does not carry Composer or npm. The disposable Composer tool
 | `make backup` | Export **local** database dump (not offsite backup) |
 | `make https-setup` | Local hostname/certificate guidance and Windows helper |
 | `make reset-project` | **Destructive** full reset of generated app and Compose volumes |
-| `make build` / `make rebuild` | Build images / rebuild and recreate selected running services |
+| `make build` / `make rebuild` | Restore configured environment, dependencies, migrations and assets / additionally recreate services |
 | `make config` | Validate Compose configuration |
 
 ### Fast startup versus readiness
@@ -137,9 +136,9 @@ After the first setup, prefer `make stop` and `make start` for short daily devel
 
 ## Local HTTPS with Caddy
 
-Choose local HTTPS in the setup wizard. For a custom name like `omapop.test`, add `127.0.0.1 omapop.test` to your hosts file (Windows: `C:\Windows\System32\drivers\etc\hosts`; Linux/macOS: `/etc/hosts`). Port **443** is the new-installation default, so the URL is:
+Choose local HTTPS in the setup wizard. For a custom name like `your-project.test`, add `127.0.0.1 your-project.test` to your hosts file (Windows: `C:\Windows\System32\drivers\etc\hosts`; Linux/macOS: `/etc/hosts`). Port **443** is the new-installation default, so the URL is:
 
-**https://omapop.test**
+**https://your-project.test**
 
 On Windows use `make https-setup` to guide hostname setup and offer to trust the local Caddy CA after confirmation. You must trust the CA in your OS/browser to avoid certificate warnings. Firefox may use its own certificate settings. Caddy's `tls internal` certificates are **development-only**, not public ACME certificates. If port 443 is occupied, choose another `HTTPS_PORT` (e.g. 8443) and append it to the URL. The wizard configures `app/.env` `APP_URL` accordingly.
 
@@ -151,7 +150,7 @@ Existing installations keep their current `HTTPS_PORT` until you change it. For 
 
 - **`.env.example`:** safe, generic defaults committed to the template.
 - **Root `.env`:** generated project-specific Compose/wizard settings; ignored by Git.
-- **`app/.env`:** generated Laravel environment; ignored with all of `app/`.
+- **`app/.env`:** generated Laravel environment; ignored by Git.
 - **`make env-sync`:** adds missing keys from the latest template, **never overwrites** existing values, secrets, or custom settings.
 - **`app.production.env.example` / `db.production.env.example`:** separate production references; do not copy development credentials into production.
 
@@ -178,7 +177,7 @@ Reset requires typing `RESET <PROJECT_NAME>`. It removes the generated `app/`, r
 **“Develop locally like production” means reproducible runtime and behavior, not identical secrets/data.** Match PHP extensions, database **engine/major version**, Composer/npm lockfiles, asset build, migrations and relevant infrastructure features. Keep `APP_KEY`, credentials, user data, email/payment gateways, domains and volumes separate. Local development can use Vite/debug tools, but verify the candidate release through the **same production Compose images** before promotion.
 
 > [!WARNING]
-> `app/` is intentionally ignored by this infrastructure template. The release workflow can publish application images **only in a separate product repository that tracks the generated application code and lockfiles**. Current production Compose supports PostgreSQL; local MariaDB/MySQL/SQLite choices do **not** imply production parity until that topology is explicitly adapted. Production backups, restore drills, deployment approvals and rollback plans are mandatory and are not automated by this template.
+> Commit generated application source and lockfiles in the product repository before publishing release images. Current production Compose supports PostgreSQL; local MariaDB/MySQL/SQLite choices do **not** imply production parity until that topology is explicitly adapted. Production backups, restore drills, deployment approvals and rollback plans are mandatory and are not automated by this template.
 
 ## Troubleshooting
 
@@ -195,7 +194,7 @@ Reset requires typing `RESET <PROJECT_NAME>`. It removes the generated `app/`, r
 
 ## Contributing
 
-Issues and pull requests are welcome. Test shell paths on Linux/WSL and PowerShell paths on Windows when modifying setup; keep `app/` out of template commits. Before proposing infrastructure changes, validate `docker compose config -q` and run the CI workflow.
+Issues and pull requests are welcome. Test shell paths on Linux/WSL and PowerShell paths on Windows when modifying setup; do not commit application source into the pristine template. Before proposing infrastructure changes, validate `docker compose config -q` and run the CI workflow.
 
 ## License
 
@@ -203,9 +202,9 @@ Released under the [MIT License](LICENSE). © 2026 sempitern0.
 
 ### Naming and compatibility
 
-The display name is **Laravel Foundry**. The upstream GitHub repository has been renamed to `laravel-foundry`. Existing Docker projects retain their custom `PROJECT_NAME` and their local `.env`; new installations default to `foundry`. Existing clones may retain the former remote URL; update it to `https://github.com/sempitern0/laravel-foundry.git` when convenient.
+The project name is configured in the setup wizard and identifies its Docker Compose resources. Keep it stable for existing installations.
 
-The **runtime setup** uses `scripts/configure-app.php` as its single Laravel environment configurator. Historical shell/PowerShell configurators and the old `destroy` volume-only scripts have been removed; use `make reset-project` (with explicit confirmation) for a complete reset. For production releases `docker/php/Production.Dockerfile` remains separate from the development toolbox.
+The setup uses `scripts/configure-app.php` for Laravel environment configuration. Use `make reset-project` (with explicit confirmation) for a complete reset. For production releases `docker/php/Production.Dockerfile` remains separate from the development toolbox.
 
 The repository icon is an original geometric mark evoking modular building blocks. It is not the official Laravel or Docker brand mark.
 
@@ -224,3 +223,26 @@ The interactive wizard can record an optional `TENANCY_MODE`: `none`, `shared-db
 ### Tests and starter customization
 
 See [Testing and customizing starters](docs/TESTING_AND_STARTERS.md) for Docker test environments, CSRF 419 failures, product authorization tests, disabled Fortify routes with Wayfinder, and Svelte/font warnings. `make test CMD="--filter=AuthenticationTest"` runs a focused suite in the testing environment.
+
+### Resume a configured project on another device
+
+`make build` now restores the saved project choices, installs dependencies,
+compiles assets and starts the local environment. Commit the generated
+`.foundry.json` **with your product's app source and lockfiles**, never its `.env`
+or credentials. Existing local configuration is preserved until explicit
+reconfiguration/reset. Use `make images` for image-only builds.
+See [portable setup and rebuild](docs/PROJECT_REBUILD.md) for the clone workflow,
+Windows usage, reset behavior and local-secret requirements.
+
+
+### Versioning application source
+
+Foundry's root `.gitignore` intentionally allows application source under
+`app/` to be versioned once a starter is generated. It still excludes the
+local Laravel environment, dependencies, runtime storage, SQLite files and
+compiled assets. Commit application source and lockfiles alongside
+`.foundry.json` for reproducible clones; never commit secrets.
+
+### Resumen de servicios al iniciar
+
+Tras `make setup` o `make up`, Foundry presenta un resumen del proyecto, configuración (sin secretos), estado de los contenedores y enlaces HTTP/HTTPS a las GUIs realmente levantadas (Laravel, Mailpit y pgweb/phpMyAdmin/Adminer si están habilitados). Para volver a mostrarlo sin reiniciar servicios usa `make status`. El estado `running` no equivale a una comprobación HTTP; consulta `make up-wait` para esperar healthchecks. Consulta [configuración portable](docs/PROJECT_REBUILD.md) para más información.
