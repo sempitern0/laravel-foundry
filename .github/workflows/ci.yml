@@ -30,6 +30,7 @@ jobs:
           python3 tests/build-resume.py
           sh tests/fresh-setup.sh
           sh tests/status.sh
+          sh tests/http-health.sh
           sh tests/preflight.sh
           sh tests/setup-recovery.sh
           sh -n scripts/prepare-node-volumes.sh scripts/prepare-composer-volume.sh
