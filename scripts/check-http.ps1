@@ -12,10 +12,10 @@ $urls = @("http://127.0.0.1:$port/up", "http://127.0.0.1:$port/")
 $success = $false
 foreach ($url in $urls) {
     try {
-        $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 5 -MaximumRedirection 4 -ErrorAction Stop
+        $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 5 -MaximumRedirection 0 -ErrorAction Stop
         if ([int]$r.StatusCode -lt 400 -or [int]$r.StatusCode -in @(401,403)) { $success = $true; break }
     } catch {
-        if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -in @(401,403)) { $success = $true; break }
+        if ($_.Exception.Response -and ([int]$_.Exception.Response.StatusCode -ge 300 -and [int]$_.Exception.Response.StatusCode -lt 400 -or [int]$_.Exception.Response.StatusCode -in @(401,403))) { $success = $true; break }
     }
 }
 if ($success) { Write-Host '[OK] Laravel responde por HTTP.' -ForegroundColor Green; exit 0 }
