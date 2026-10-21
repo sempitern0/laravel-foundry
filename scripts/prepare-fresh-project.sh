@@ -6,7 +6,7 @@ if [ -f .foundry.json ]; then
   echo 'Configured project has no app/artisan. Restore its source before setup.' >&2
   exit 2
 fi
-if [ -d app ] && [ -n "$(find app -mindepth 1 -maxdepth 1 ! -name node_modules -print -quit)" ]; then
+if [ -d app ] && [ -n "$(find app -mindepth 1 -maxdepth 1 ! -name node_modules ! -name vendor -print -quit)" ]; then
   echo 'app/ contains files but no artisan; refusing to overwrite.' >&2
   exit 2
 fi
