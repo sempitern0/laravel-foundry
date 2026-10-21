@@ -43,7 +43,7 @@ try {
 
     # Delete only known generated paths, never source files, backup archives or
     # arbitrary paths. Refuse directory junctions/symlinks.
-    foreach ($relative in @('app', '.env', '.foundry.json', '.foundry-starter', 'certs/caddy-local-root.crt', 'caddy-local-root.crt')) {
+    foreach ($relative in @('app', '.env', '.foundry.json', '.foundry-starter', 'certs/caddy-local-root.crt', 'caddy-local-root.crt', '.foundry-setup-pending', '.foundry-runtime-state')) {
         $path = Join-Path $root $relative
         if (Test-Path -LiteralPath $path) {
             $item = Get-Item -LiteralPath $path -Force
