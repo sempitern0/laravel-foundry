@@ -14,7 +14,10 @@ printf '\nSETUP_CONFIGURED=1\nPROJECT_NAME=old-application\n' >> "$temp/project/
   grep -q '^PROJECT_NAME=project-' .env
   test -n "$(find app-backups -type f -name '*.bak' -print -quit)"
   first=$(sed -n 's/^PROJECT_NAME=//p' .env)
-  mkdir -p app
+  mkdir -p app/vendor app/node_modules
+  sh "$source_dir/scripts/prepare-fresh-project.sh"
+  test "$first" != "$(sed -n 's/^PROJECT_NAME=//p' .env)"
+  first=$(sed -n 's/^PROJECT_NAME=//p' .env)
   printf 'fixture' > app/artisan
   sh "$source_dir/scripts/prepare-fresh-project.sh"
   test "$first" = "$(sed -n 's/^PROJECT_NAME=//p' .env)"
