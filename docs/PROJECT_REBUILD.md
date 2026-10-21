@@ -82,3 +82,22 @@ de construir cualquier imagen; no se inicia Docker Desktop automáticamente.
 La prueba independiente `tests/docker-preflight.ps1` simula cuatro estados
 (cliente ausente, Compose ausente, motor parado y entorno listo) sin
 necesitar Docker en ejecución.
+
+## Composer lento en el primer setup (Docker Desktop / Windows)
+
+En desarrollo, `composer_vendor` es un volumen Linux de Docker compartido
+por PHP-FPM, workers, Composer y el frontend. Esto evita construir miles de
+archivos de `vendor/` en un bind mount del sistema de archivos de Windows.
+`node_modules` continúa en su propio volumen Docker.
+
+La primera instalación de Composer puede seguir tardando mientras resuelve,
+descarga, genera autoload y ejecuta scripts del starter. Si permanece en
+`Generating optimized autoload files`, no significa necesariamente que se
+haya bloqueado: Laravel puede estar ejecutando descubrimiento de paquetes
+posteriormente. El proceso conserva logs visibles y una nueva ejecución de
+`make build` reutiliza las dependencias ya instaladas.
+
+La carpeta `app/vendor/` del host ya no es la fuente de dependencias para
+contenedores de desarrollo. El volumen se crea automáticamente, sin borrar
+código fuente ni datos. Nunca utilices `docker compose down -v` como remedio
+para una instalación lenta.
