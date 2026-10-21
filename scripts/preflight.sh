@@ -21,6 +21,17 @@ if [ "$mode" = run ]; then
 elif [ -f .foundry.json ] && [ ! -f app/artisan ]; then
  echo 'ERROR: manifiesto portable sin Laravel; recupera el codigo.' >&2;exit 1
 fi
+# Compare against the last successful local setup (credentials never stored).
+if [ -f .foundry-runtime-state ]; then
+  for key in PROJECT_NAME DB_ENGINE DB_DATABASE; do
+    previous=$(sed -n "s/^$key=//p" .foundry-runtime-state | tail -n 1)
+    current=$(val "$key")
+    if [ -n "$previous" ] && [ "$previous" != "$current" ]; then
+      echo "AVISO: $key ha cambiado ($previous -> $current). Los datos siguen en los volumenes anteriores." >&2
+      if [ "$mode" = run ]; then echo 'ERROR: ejecuta make reconfigure y revisa la migracion antes de iniciar.' >&2; exit 1; fi
+    fi
+  done
+fi
 ports=''
 for spec in "HTTP_PORT:web:8080" "HTTPS_PORT:caddy-local:443" "DB_UI_PORT:$ui:8081" "MAILPIT_PORT:mailpit:8025" "VITE_PORT:node:5173"; do
  key=${spec%%:*}; rest=${spec#*:}; service=${rest%%:*}; default=${rest##*:}
