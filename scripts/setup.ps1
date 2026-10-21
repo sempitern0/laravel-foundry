@@ -8,7 +8,12 @@ Set-StrictMode -Version Latest
 function Compose {
     param([string[]]$Cmd)
     & docker compose @Cmd
-    if ($LASTEXITCODE -ne 0) { throw "docker compose $($Cmd -join ' ') failed ($LASTEXITCODE)" }
+    if ($LASTEXITCODE -ne 0) {
+        $operation = ($Cmd -join ' ')
+        Write-Host "ERROR en Docker Compose (codigo $LASTEXITCODE): $operation" -ForegroundColor Red
+        Write-Host 'Comprueba Docker Desktop y ejecuta make ps o make logs. Puedes reintentar make setup: se conserva el progreso.' -ForegroundColor Yellow
+        throw "Docker Compose termino con codigo $LASTEXITCODE."
+    }
 }
 $root = Split-Path -Parent $PSScriptRoot
 Push-Location -LiteralPath $root
