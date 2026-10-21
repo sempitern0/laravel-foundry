@@ -70,6 +70,44 @@ if ($Mode -eq 'Setup' -and (Test-Path -LiteralPath (Join-Path $root '.foundry.js
     throw 'Existe .foundry.json pero falta Laravel: recupera el codigo, no se reemplazara.'
 }
 
+# Warn before switching to a different Compose identity or database volume.
+$previousPath = Join-Path $root '.foundry-runtime-state'
+if (Test-Path -LiteralPath $previousPath) {
+    $previous = @{}
+    foreach ($line in Get-Content -LiteralPath $previousPath) {
+        if ($line -match '^(PROJECT_NAME|DB_ENGINE|DB_DATABASE)=(.*)
+$owned = @{}
+try {
+    $lines = @(& docker compose ps --services --status running 2>$null)
+    if ($LASTEXITCODE -eq 0) {
+        foreach ($line in $lines) { $owned[([string]$line).Trim()] = $true }
+    }
+} catch { Write-Warning 'No se pudieron identificar los contenedores propios; se revisaran los puertos.' }
+foreach ($entry in $ports.GetEnumerator()) {
+    $port = [int]$entry.Key
+    $service = [string]$entry.Value.Service
+    if ($owned.ContainsKey($service)) { continue }
+    $listener = $null
+    try {
+        $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,$port)
+        $listener.Start()
+    } catch [Net.Sockets.SocketException] {
+        throw "El puerto $port ($($entry.Value.Key)) ya esta ocupado. Cierra la otra aplicacion o cambia el puerto en .env; comprueba con Get-NetTCPConnection -LocalPort $port."
+    } finally {
+        if ($null -ne $listener) { $listener.Stop() }
+    }
+}
+Write-Host '[OK] Configuracion y puertos locales comprobados.' -ForegroundColor Green
+) { $previous[$Matches[1]] = $Matches[2] }
+    }
+    foreach ($key in @('PROJECT_NAME','DB_ENGINE','DB_DATABASE')) {
+        if ($previous.ContainsKey($key) -and $previous[$key] -cne (Val $key '')) {
+            $message = "ATENCION: $key ha cambiado desde el ultimo setup correcto ($($previous[$key]) -> $(Val $key '')). Los datos siguen en los volumenes anteriores."
+            if ($Mode -eq 'Run') { throw "$message Ejecuta make reconfigure y verifica la migracion antes de iniciar." }
+            Write-Warning $message
+        }
+    }
+}
 # Docker Compose identifies the containers belonging to this project.
 $owned = @{}
 try {
