@@ -4,6 +4,9 @@
 # Application source is intentionally versioned in projects created from Foundry.
 # A pristine template has no app/ source to commit until a starter is installed.
 /app-backups/
+# Local setup recovery and last completed Compose identity (no secrets).
+/.foundry-setup-pending
+/.foundry-runtime-state
 .env
 /app/.env
 /app/.env.*
