@@ -69,3 +69,16 @@ Compared against `9d2774cc84adac473fcc8892c4706e7c57ba0913`, with Foundry based 
 - CI validates that application source is not ignored and that environment secrets and runtime files remain excluded.
 
 These are framework infrastructure conventions; music-specific catalog adapters, acoustic fingerprints, scan workers and private dashboards are deliberately **not** part of Foundry.
+
+## Docker Desktop cerrado durante setup (Windows)
+
+`make setup` y `make build` comprueban primero si Docker CLI,
+Compose v2 y el motor Docker están disponibles. Si Docker Desktop está
+instalado pero detenido, se muestra un mensaje sencillo para abrirlo,
+esperar a que inicie el motor Linux y volver a ejecutar el comando.
+La comprobación se realiza antes de crear o modificar `.env` y antes
+de construir cualquier imagen; no se inicia Docker Desktop automáticamente.
+
+La prueba independiente `tests/docker-preflight.ps1` simula cuatro estados
+(cliente ausente, Compose ausente, motor parado y entorno listo) sin
+necesitar Docker en ejecución.
