@@ -134,3 +134,24 @@ running **no garantiza** que la aplicación web responda; para comprobar la
 disponibilidad real utiliza `make up-wait` y las pruebas HTTP.
 La primera configuración local HTTPS puede requerir `make https-setup`
 para registrar el hostname y confiar en la CA local.
+
+## Comprobaciones antes y despues del arranque
+
+`make check` valida opciones estructurales, compatibilidad de la base de
+datos y el panel, archivos Laravel requeridos y puertos locales habilitados.
+Se ejecuta antes de `make up`, `make up-wait` y `make start`; el asistente
+`make setup` lo ejecuta tras recoger las opciones. Un servicio del propio
+proyecto que ya este en marcha no se considera conflicto de puerto.
+El chequeo es no destructivo: no libera puertos ni reconfigura aplicaciones.
+En POSIX comprueba puertos con Python 3 si esta disponible; en su ausencia,
+advierte y continua con las restantes validaciones.
+
+`make up-wait` y el final de `make setup` comprueban adicionalmente una
+respuesta HTTP de Laravel (`/up` o la raiz). Una redireccion HTTP o una pagina
+con autenticacion puede ser una respuesta valida; una respuesta 500 o un error
+de conexion provoca un aviso y remite a los logs. El arranque Docker conserva
+su resultado original aunque fallen estas comprobaciones diagnosticas.
+La salud de contenedores no garantiza por si sola que las rutas de negocio
+funcionen. `make status` permanece como comando explicito para ver el estado;
+su fallo, cuando se invoca automaticamente tras arrancar, no anula un
+`docker compose up` correcto.
