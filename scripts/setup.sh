@@ -9,6 +9,7 @@ docker compose build composer
 docker compose run --rm --no-deps composer php /opt/letsgo/env-sync.php --root-only
 docker compose run --rm --no-deps composer php /opt/letsgo/project-config.php restore
 docker compose run --rm --interactive --no-deps composer php /opt/letsgo/wizard.php ${FOUNDRY_WIZARD_MODE:---if-needed}
+sh scripts/preflight.sh setup
 docker compose build app composer node
 sh scripts/bootstrap.sh "${1:-}"
 docker compose run --rm --no-deps composer php /opt/letsgo/project-config.php save
@@ -32,4 +33,5 @@ if [ -f app/package.json ]; then
 fi
 docker compose up -d
 docker compose ps
-sh scripts/status.sh
+sh scripts/check-http.sh || echo 'AVISO: fallo del diagnostico HTTP.'
+sh scripts/status.sh || echo 'AVISO: ejecuta make status para volver a mostrar el resumen.'
