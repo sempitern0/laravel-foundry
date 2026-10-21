@@ -36,6 +36,8 @@ try {
     $wizardArgs = @('run','--rm','--interactive','--no-deps','composer','php','/opt/letsgo/wizard.php')
     if (-not $Reconfigure) { $wizardArgs += '--if-needed' }
     Compose -Cmd $wizardArgs
+    & (Join-Path $PSScriptRoot 'preflight.ps1') -Mode Setup
+    if ($LASTEXITCODE -ne 0) { throw 'Preflight failed' }
     Compose -Cmd @('build','app','composer','node')
     & (Join-Path $PSScriptRoot 'bootstrap.ps1') -Starter $Starter
     if (-not $?) { throw 'Bootstrap failed' }
@@ -60,6 +62,7 @@ try {
     }
     Compose -Cmd @('up','-d')
     Compose -Cmd @('ps')
-    & (Join-Path $PSScriptRoot 'status.ps1')
+    try { & (Join-Path $PSScriptRoot 'check-http.ps1') } catch { Write-Warning 'Comprobacion HTTP no disponible.' }
+    try { & (Join-Path $PSScriptRoot 'status.ps1') } catch { Write-Warning 'No se pudo mostrar el resumen; prueba make status.' }
 
 } finally { Pop-Location }
