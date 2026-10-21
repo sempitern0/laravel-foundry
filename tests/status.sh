@@ -31,6 +31,7 @@ exit 1
 DOCKER
 chmod +x "$temp/bin/docker"
 PATH="$temp/bin:$PATH" sh "$temp/project/scripts/status.sh" > "$temp/out"
+grep -q 'APP PRINCIPAL' "$temp/out"
 grep -q 'https://videoapp.test' "$temp/out"
 grep -q 'http://localhost:8081' "$temp/out"
 grep -q 'http://localhost:8025' "$temp/out"
@@ -41,6 +42,6 @@ cat > "$temp/bin/docker" <<'DOCKER'
 exit 1
 DOCKER
 PATH="$temp/bin:$PATH" sh "$temp/project/scripts/status.sh" > "$temp/stop"
-grep -q 'configured, not running' "$temp/stop"
+grep -q 'Configurado, detenido' "$temp/stop"
 if grep -q 'https://videoapp.test' "$temp/stop"; then echo 'Status advertised stopped HTTPS GUI' >&2; exit 1; fi
 echo 'PASS Foundry status URLs, secret redaction and stopped-service behavior'
