@@ -1,8 +1,9 @@
 [CmdletBinding()]
-param([ValidateSet('Setup','Run')][string]$Mode = 'Run')
+param([ValidateSet('Setup','Run')][string]$Mode = 'Run', [string]$Root)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-$root = Split-Path -Parent $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($Root)) { $Root = Split-Path -Parent $PSScriptRoot }
+$root = $Root
 $path = Join-Path $root '.env'
 if (-not (Test-Path -LiteralPath $path)) { throw 'Falta .env. Ejecuta make setup.' }
 $cfg = @{}
