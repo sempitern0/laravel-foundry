@@ -4,6 +4,7 @@ SETUP_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/
 BACKUP_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/backup.ps1
 RESET_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/reset-project.ps1
 HTTPS_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/https-setup.ps1
+STATUS_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/status.ps1
 TENANCY_CHECK_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/tenancy-check.ps1
 else
 SHELL := /bin/sh
@@ -11,6 +12,7 @@ SETUP_SCRIPT := sh scripts/setup.sh
 BACKUP_SCRIPT := sh scripts/backup.sh
 RESET_SCRIPT := sh scripts/reset-project.sh
 HTTPS_SCRIPT := sh scripts/https-setup.sh
+STATUS_SCRIPT := sh scripts/status.sh
 TENANCY_CHECK_SCRIPT := sh scripts/tenancy-check.sh
 endif
 
@@ -20,7 +22,7 @@ STARTER ?=
 # Explicit all-profiles stop also removes containers started manually through a
 # profile not included in the current .env.
 ALL_PROFILES := --profile dev --profile tools --profile workers --profile scheduler --profile redis --profile https --profile postgres --profile mariadb --profile mysql --profile phpmyadmin --profile mailpit --profile pgweb --profile adminer
-.PHONY: help setup reconfigure up up-detached up-wait up-logs start stop restart down build images rebuild ps logs shell artisan composer npm migrate test lint backup env-sync https-setup reset-project worker scheduler redis config tenancy-check
+.PHONY: help status setup reconfigure up up-detached up-wait up-logs start stop restart down build images rebuild ps logs shell artisan composer npm migrate test lint backup env-sync https-setup reset-project worker scheduler redis config tenancy-check
 
 help:
 	@echo "Laravel Foundry - self-hosted Laravel environments with Docker Compose"
@@ -29,7 +31,7 @@ help:
 	@echo "Lifecycle:   make up | up-wait | up-logs | start | stop | restart | down"
 	@echo "Environment: make build | rebuild (restore settings, dependencies and assets)"
 	@echo "Images only: make images"
-	@echo "Diagnostics: make ps | logs | config | shell"
+	@echo "Diagnostics: make status | ps | logs | config | shell"
 	@echo "Laravel:     make artisan CMD='route:list' | migrate | test | lint"
 	@echo "Tooling:     make composer CMD='install' | npm CMD='run build'"
 	@echo "Optional:    make worker | scheduler | redis"
@@ -51,11 +53,13 @@ endif
 # Detached startup is the default. Readiness is optional and explicit.
 up:
 	$(DC) up -d
+	$(STATUS_SCRIPT)
 
 up-detached: up
 
 up-wait:
 	$(DC) up -d --wait --wait-timeout 120
+	$(STATUS_SCRIPT)
 
 up-logs:
 	$(DC) up
@@ -63,6 +67,7 @@ up-logs:
 # Retain containers/networks for fast daily resume; no destructive operations.
 start:
 	$(DC) start
+	$(STATUS_SCRIPT)
 
 stop:
 	$(DC) stop
@@ -80,6 +85,9 @@ images:
 
 rebuild: build
 	$(DC) up -d --wait --wait-timeout 120 --force-recreate
+
+status:
+	$(STATUS_SCRIPT)
 
 ps:
 	$(DC) ps
