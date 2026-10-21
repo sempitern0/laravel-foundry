@@ -2,6 +2,7 @@
 param([string]$Starter = '', [switch]$Reconfigure)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'prepare-fresh-project.ps1')
 . (Join-Path $PSScriptRoot 'docker-preflight.ps1')
 function Compose {
     param([string[]]$Cmd)
@@ -23,6 +24,7 @@ try {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
         Write-Warning 'Git for Windows is not available on the host; install it to clone/version projects.'
     }
+    [void](Initialize-FoundryFreshProject -Root $root)
     # Configure the infrastructure before downloading Laravel. Otherwise a
     # failed git clone prevents the wizard from ever appearing.
     if (-not (Test-Path -LiteralPath '.env')) {
