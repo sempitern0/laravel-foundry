@@ -258,6 +258,9 @@ jobs:
       - name: Execute status summary in Windows PowerShell 5.1
         shell: powershell
         run: ./tests/status.ps1
+      - name: Exercise preflight validation in Windows PowerShell 5.1
+        shell: powershell
+        run: ./tests/preflight.ps1
       - name: Check preflight configuration and HTTP command syntax
         shell: powershell
         run: |
