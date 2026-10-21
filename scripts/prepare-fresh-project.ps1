@@ -8,6 +8,18 @@ function Initialize-FoundryFreshProject {
     $app = Join-Path $Root 'app'
     $manifest = Join-Path $Root '.foundry.json'
     if (Test-Path -LiteralPath (Join-Path $app 'artisan')) { return $false }
+    $pending = Join-Path $Root '.foundry-setup-pending'
+    if (Test-Path -LiteralPath $pending) {
+        $savedName = [IO.File]::ReadAllText($pending).Trim()
+        $envPath = Join-Path $Root '.env'
+        if (-not (Test-Path -LiteralPath $envPath)) { throw 'Setup pendiente sin .env: recupera la configuracion anterior.' }
+        $currentName = @(Get-Content -LiteralPath $envPath | Where-Object { $_ -match '^PROJECT_NAME=' } | Select-Object -Last 1)
+        if ($currentName.Count -ne 1 -or (($currentName[0] -split '=',2)[1].Trim('"')) -cne $savedName) {
+            throw 'Setup pendiente con identidad distinta. No se sustituye la configuracion automaticamente.'
+        }
+        Write-Host "Reanudando setup pendiente de $savedName sin perder las opciones guardadas."
+        return $false
+    }
     if (Test-Path -LiteralPath $manifest) {
         throw 'Este repositorio contiene .foundry.json pero falta app/artisan. Es un proyecto configurado incompleto; recupera el código antes de iniciar setup.'
     }
