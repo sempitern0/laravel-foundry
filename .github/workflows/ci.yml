@@ -259,6 +259,12 @@ jobs:
       - name: Execute status summary in Windows PowerShell 5.1
         shell: powershell
         run: ./tests/status.ps1
+      - name: Guard preflight against duplicated or truncated blocks
+        shell: powershell
+        run: |
+          $source = Get-Content scripts/preflight.ps1 -Raw
+          if (($source.Split(@('$owned = @{}'), [System.StringSplitOptions]::None).Count - 1) -ne 1) { throw 'Duplicate Docker ownership block' }
+          if (($source.Split(@("Write-Host '[OK] Configuracion y puertos locales comprobados."), [System.StringSplitOptions]::None).Count - 1) -ne 1) { throw 'Duplicate preflight completion block' }
       - name: Exercise preflight validation in Windows PowerShell 5.1
         shell: powershell
         run: ./tests/preflight.ps1
