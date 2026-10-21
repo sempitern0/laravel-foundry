@@ -45,30 +45,14 @@ For changed root `.env` choices, `make build` recalculates service profiles and
 updates managed Laravel settings while retaining APP_KEY and unrelated settings.
 No production deployment is performed by these development commands.
 
-## Port from Private NAS PR #2
-
-Compared against `9d2774cc84adac473fcc8892c4706e7c57ba0913`, with Foundry based on
-`ed0ba0e`:
-
-- Adapted: preserve existing source without keep/replace prompts; create missing
-  Laravel runtime directories; repair ownership only in Docker tooling volumes;
-  restore dependencies and compile frontend assets during rebuild.
-- Added to close the cross-device gap: versioned, credential-free manifest;
-  clone restoration, strict key validation and reset removal on POSIX/PowerShell.
-  Private NAS remembered configuration through its ignored `.env` alone.
-- Retained Foundry's generic starters and services. No NAS/music/Navidrome files,
-  forced Wayfinder command, application auth changes or production overlays copied.
-- Existing app dependencies use Composer install and npm ci with lockfiles.
-  Starter-specific scripts still run through the application's own package scripts.
-
-## Generic reliability fixes from Private NAS
+## Runtime safeguards
 
 - PHP Redis extension is installed in the shared base image and available to the app, CLI workers and tools when Redis queues are selected. Merely starting a Redis container is not sufficient without the client extension.
 - Nginx uses Docker DNS to refresh the PHP-FPM upstream after replacing the app container (prevents stale-address 502 errors).
 - `make test` sets an isolated Laravel application environment and an independent testing configuration cache. The app itself must still ship a safe `phpunit.xml` (e.g. SQLite in-memory, array cache/sessions and sync queue); the template does not overwrite the chosen starter's test configuration.
 - CI validates that application source is not ignored and that environment secrets and runtime files remain excluded.
 
-These are framework infrastructure conventions; music-specific catalog adapters, acoustic fingerprints, scan workers and private dashboards are deliberately **not** part of Foundry.
+These safeguards are independent of the application's business features.
 
 ## Docker Desktop cerrado durante setup (Windows)
 
