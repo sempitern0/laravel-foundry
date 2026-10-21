@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate POSIX scripts
-        run: sh -n scripts/status.sh scripts/prepare-fresh-project.sh scripts/https-setup.sh scripts/bootstrap.sh scripts/checkout-starter.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh scripts/tenancy-check.sh
+        run: sh -n scripts/preflight.sh scripts/check-http.sh scripts/status.sh scripts/prepare-fresh-project.sh scripts/https-setup.sh scripts/bootstrap.sh scripts/checkout-starter.sh scripts/setup.sh scripts/npm-ensure.sh scripts/backup.sh scripts/reset-project.sh scripts/tenancy-check.sh
       - name: Test HTTPS certificate export retries
         run: python3 tests/https-export.py
       - name: Test container healthcheck variable interpolation
@@ -30,6 +30,7 @@ jobs:
           python3 tests/build-resume.py
           sh tests/fresh-setup.sh
           sh tests/status.sh
+          sh tests/preflight.sh
           sh -n scripts/prepare-node-volumes.sh scripts/prepare-composer-volume.sh
           php -l scripts/project-config.php
           php -l scripts/prepare-app.php
@@ -38,6 +39,7 @@ jobs:
           make -n setup STARTER=svelte
           make -n up
           make -n status
+          make -n check
           make -n up-wait
           make -n start
           make -n stop
@@ -256,6 +258,15 @@ jobs:
       - name: Execute status summary in Windows PowerShell 5.1
         shell: powershell
         run: ./tests/status.ps1
+      - name: Check preflight configuration and HTTP command syntax
+        shell: powershell
+        run: |
+          $scripts = @('scripts/preflight.ps1','scripts/check-http.ps1')
+          foreach ($file in $scripts) {
+            $tokens = $null; $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file).Path, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count) { throw ($errors | Out-String) }
+          }
       - name: Validate prerequisites installer PowerShell syntax
         shell: powershell
         run: |
