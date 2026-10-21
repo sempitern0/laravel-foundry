@@ -10,7 +10,6 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docker Compose](https://img.shields.io/badge/orchestration-Docker%20Compose-2496ED?logo=docker&logoColor=white)](compose.yaml)
 [![PowerShell + POSIX](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-555)](#requirements)
-[![Status: Preview](https://img.shields.io/badge/status-preview-yellow)](https://github.com/sempitern0/laravel-foundry/pull/1)
 
 **Bring your own Laravel starter. No Sail, Herd, required SaaS, or paid local database.**
 
@@ -19,7 +18,7 @@
 </div>
 
 > [!IMPORTANT]
-> This is an **infrastructure template, not a Laravel application repository**. The generated `app/` directory is deliberately ignored by Git. Release/staging configurations are **reference starting points**, not a verified turnkey production deployment. Never commit secrets.
+> This is an **infrastructure template, not a Laravel application repository**. Generated application source under `app/` can be versioned; secrets, dependencies and runtime files remain ignored. Release/staging configurations are **reference starting points**, not a verified turnkey production deployment. Never commit secrets.
 
 ## At a glance
 
@@ -137,9 +136,9 @@ After the first setup, prefer `make stop` and `make start` for short daily devel
 
 ## Local HTTPS with Caddy
 
-Choose local HTTPS in the setup wizard. For a custom name like `omapop.test`, add `127.0.0.1 omapop.test` to your hosts file (Windows: `C:\Windows\System32\drivers\etc\hosts`; Linux/macOS: `/etc/hosts`). Port **443** is the new-installation default, so the URL is:
+Choose local HTTPS in the setup wizard. For a custom name like `your-project.test`, add `127.0.0.1 your-project.test` to your hosts file (Windows: `C:\Windows\System32\drivers\etc\hosts`; Linux/macOS: `/etc/hosts`). Port **443** is the new-installation default, so the URL is:
 
-**https://omapop.test**
+**https://your-project.test**
 
 On Windows use `make https-setup` to guide hostname setup and offer to trust the local Caddy CA after confirmation. You must trust the CA in your OS/browser to avoid certificate warnings. Firefox may use its own certificate settings. Caddy's `tls internal` certificates are **development-only**, not public ACME certificates. If port 443 is occupied, choose another `HTTPS_PORT` (e.g. 8443) and append it to the URL. The wizard configures `app/.env` `APP_URL` accordingly.
 
@@ -151,7 +150,7 @@ Existing installations keep their current `HTTPS_PORT` until you change it. For 
 
 - **`.env.example`:** safe, generic defaults committed to the template.
 - **Root `.env`:** generated project-specific Compose/wizard settings; ignored by Git.
-- **`app/.env`:** generated Laravel environment; ignored with all of `app/`.
+- **`app/.env`:** generated Laravel environment; ignored by Git.
 - **`make env-sync`:** adds missing keys from the latest template, **never overwrites** existing values, secrets, or custom settings.
 - **`app.production.env.example` / `db.production.env.example`:** separate production references; do not copy development credentials into production.
 
@@ -178,7 +177,7 @@ Reset requires typing `RESET <PROJECT_NAME>`. It removes the generated `app/`, r
 **“Develop locally like production” means reproducible runtime and behavior, not identical secrets/data.** Match PHP extensions, database **engine/major version**, Composer/npm lockfiles, asset build, migrations and relevant infrastructure features. Keep `APP_KEY`, credentials, user data, email/payment gateways, domains and volumes separate. Local development can use Vite/debug tools, but verify the candidate release through the **same production Compose images** before promotion.
 
 > [!WARNING]
-> `app/` is intentionally ignored by this infrastructure template. The release workflow can publish application images **only in a separate product repository that tracks the generated application code and lockfiles**. Current production Compose supports PostgreSQL; local MariaDB/MySQL/SQLite choices do **not** imply production parity until that topology is explicitly adapted. Production backups, restore drills, deployment approvals and rollback plans are mandatory and are not automated by this template.
+> Commit generated application source and lockfiles in the product repository before publishing release images. Current production Compose supports PostgreSQL; local MariaDB/MySQL/SQLite choices do **not** imply production parity until that topology is explicitly adapted. Production backups, restore drills, deployment approvals and rollback plans are mandatory and are not automated by this template.
 
 ## Troubleshooting
 
@@ -195,7 +194,7 @@ Reset requires typing `RESET <PROJECT_NAME>`. It removes the generated `app/`, r
 
 ## Contributing
 
-Issues and pull requests are welcome. Test shell paths on Linux/WSL and PowerShell paths on Windows when modifying setup; keep `app/` out of template commits. Before proposing infrastructure changes, validate `docker compose config -q` and run the CI workflow.
+Issues and pull requests are welcome. Test shell paths on Linux/WSL and PowerShell paths on Windows when modifying setup; do not commit application source into the pristine template. Before proposing infrastructure changes, validate `docker compose config -q` and run the CI workflow.
 
 ## License
 
@@ -203,9 +202,9 @@ Released under the [MIT License](LICENSE). © 2026 sempitern0.
 
 ### Naming and compatibility
 
-The display name is **Laravel Foundry**. The upstream GitHub repository has been renamed to `laravel-foundry`. Existing Docker projects retain their custom `PROJECT_NAME` and their local `.env`; new installations default to `foundry`. Existing clones may retain the former remote URL; update it to `https://github.com/sempitern0/laravel-foundry.git` when convenient.
+The project name is configured in the setup wizard and identifies its Docker Compose resources. Keep it stable for existing installations.
 
-The **runtime setup** uses `scripts/configure-app.php` as its single Laravel environment configurator. Historical shell/PowerShell configurators and the old `destroy` volume-only scripts have been removed; use `make reset-project` (with explicit confirmation) for a complete reset. For production releases `docker/php/Production.Dockerfile` remains separate from the development toolbox.
+The setup uses `scripts/configure-app.php` for Laravel environment configuration. Use `make reset-project` (with explicit confirmation) for a complete reset. For production releases `docker/php/Production.Dockerfile` remains separate from the development toolbox.
 
 The repository icon is an original geometric mark evoking modular building blocks. It is not the official Laravel or Docker brand mark.
 
