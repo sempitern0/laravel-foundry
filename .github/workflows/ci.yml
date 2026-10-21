@@ -248,6 +248,9 @@ jobs:
       - name: Verify Docker Desktop preflight and actionable error messages
         shell: powershell
         run: ./tests/docker-preflight.ps1
+      - name: Check fresh starter mountpoint safety on Windows
+        shell: powershell
+        run: ./tests/app-source-guard.ps1
       - name: Validate prerequisites installer PowerShell syntax
         shell: powershell
         run: |
