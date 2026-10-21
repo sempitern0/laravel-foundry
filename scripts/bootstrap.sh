@@ -54,7 +54,7 @@ if [ -f app/artisan ]; then
 fi
 
 mkdir -p app
-if [ -n "$(find app -mindepth 1 -maxdepth 1 ! -name node_modules -print -quit)" ]; then
+if [ -n "$(find app -mindepth 1 -maxdepth 1 ! -name node_modules ! -name vendor -print -quit)" ]; then
   echo "app/ has contents but no artisan file. Refusing to overwrite." >&2
   exit 1
 fi
