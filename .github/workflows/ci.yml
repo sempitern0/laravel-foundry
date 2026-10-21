@@ -262,6 +262,9 @@ jobs:
       - name: Exercise preflight validation in Windows PowerShell 5.1
         shell: powershell
         run: ./tests/preflight.ps1
+      - name: Exercise interrupted setup recovery on Windows
+        shell: powershell
+        run: ./tests/setup-recovery.ps1
       - name: Check preflight configuration and HTTP command syntax
         shell: powershell
         run: |
