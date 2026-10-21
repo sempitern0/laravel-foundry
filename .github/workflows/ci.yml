@@ -215,6 +215,11 @@ jobs:
       - name: Check Vite has PHP CLI for Wayfinder
         run: |
           docker compose --profile dev run --rm --no-deps --entrypoint sh node -ec 'php -v && node --version && npm --version && ! command -v composer'
+      - name: Verify shared Composer vendor volume
+        run: |
+          docker compose config | grep -q 'composer_vendor'
+          docker compose run --rm --no-deps --entrypoint sh composer -ec 'test -d /var/www/html/vendor && test -w /var/www/html/vendor'
+          docker compose --profile dev run --rm --no-deps --entrypoint sh node -ec 'test -d /var/www/html/vendor'
       - name: Verify shared dependencies and matching Linux libc
         run: |
           docker compose --profile dev run --rm --no-deps --entrypoint sh node -ec 'node --version && npm --version && test -f /var/www/html/node_modules/.cache-write-test && test -f /tmp/npm-cache/.cache-write-test'
