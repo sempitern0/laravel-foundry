@@ -243,3 +243,7 @@ Foundry's root `.gitignore` intentionally allows application source under
 local Laravel environment, dependencies, runtime storage, SQLite files and
 compiled assets. Commit application source and lockfiles alongside
 `.foundry.json` for reproducible clones; never commit secrets.
+
+### Resumen de servicios al iniciar
+
+Tras `make setup` o `make up`, Foundry presenta un resumen del proyecto, configuración (sin secretos), estado de los contenedores y enlaces HTTP/HTTPS a las GUIs realmente levantadas (Laravel, Mailpit y pgweb/phpMyAdmin/Adminer si están habilitados). Para volver a mostrarlo sin reiniciar servicios usa `make status`. El estado `running` no equivale a una comprobación HTTP; consulta `make up-wait` para esperar healthchecks. Consulta [configuración portable](docs/PROJECT_REBUILD.md) para más información.
