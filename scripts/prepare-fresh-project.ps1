@@ -1,4 +1,5 @@
 # Runs before the first Docker Compose invocation.
+. (Join-Path $PSScriptRoot 'app-source-guard.ps1')
 # A new, empty Foundry checkout must not inherit an abandoned .env or
 # another Compose project's named volumes.
 function Initialize-FoundryFreshProject {
@@ -12,8 +13,7 @@ function Initialize-FoundryFreshProject {
     }
 
     if (Test-Path -LiteralPath $app) {
-        $unexpected = @(Get-ChildItem -LiteralPath $app -Force |
-            Where-Object { $_.Name -ne 'node_modules' })
+        $unexpected = @(Get-FoundryUnexpectedAppEntries -AppPath $app)
         if ($unexpected.Count -gt 0) {
             throw 'app/ contiene archivos pero no artisan. No se modificará ni sobrescribirá su contenido.'
         }
