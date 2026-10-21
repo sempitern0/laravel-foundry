@@ -44,13 +44,28 @@ try {
     }
 } catch { $hasDockerStatus = $false }
 function Active([string]$Name) { return $running.ContainsKey($Name) }
-function Show-Service([string]$Name, [string]$Label) {
-    $state = if (Active $Name) { 'en marcha' } else { 'detenido' }
-    Write-Host ('  {0,-16} {1}' -f $Label, $state)
+function Section([string]$Name) {
+    Write-Host ''
+    Write-Host ('  -- ' + $Name.ToUpperInvariant() + ' ' + ('-' * [Math]::Max(0, (53 - $Name.Length)))) -ForegroundColor DarkCyan
 }
-function Show-Link([string]$Label, [string]$Url, [bool]$Available) {
-    if ($Available) { Write-Host ('  {0,-16} {1}' -f $Label, $Url) }
-    else { Write-Host ('  {0,-16} {1}' -f $Label, '(configurado, no iniciado)') }
+function Item([string]$Label, [string]$Value) {
+    Write-Host ('  {0,-20} ' -f $Label) -NoNewline -ForegroundColor DarkGray
+    Write-Host $Value -ForegroundColor White
+}
+function Show-Service([string]$Name, [string]$Label) {
+    Write-Host ('  {0,-23}' -f $Label) -NoNewline
+    if (Active $Name) { Write-Host '[OK] En marcha' -ForegroundColor Green }
+    elseif (-not $hasDockerStatus) { Write-Host '[?] No comprobable' -ForegroundColor Yellow }
+    else { Write-Host '[--] Detenido' -ForegroundColor DarkYellow }
+}
+function Show-Link([string]$Label, [string]$Url, [bool]$Available, [bool]$Primary = $false) {
+    Write-Host ('  {0,-20} ' -f $Label) -NoNewline -ForegroundColor Gray
+    if ($Available) {
+        # Full, uninterrupted URL keeps it clickable in modern terminals.
+        Write-Host $Url -ForegroundColor $(if ($Primary) { 'Green' } else { 'Cyan' })
+    } else {
+        Write-Host '[--] Configurado, detenido' -ForegroundColor DarkYellow
+    }
 }
 $name = Setting 'PROJECT_NAME' 'foundry'
 $title = Setting 'APP_LABEL' $name
@@ -72,38 +87,17 @@ $starter = if (Test-Path -LiteralPath $starterPath) {
 $starter = $starter -replace '[\x00-\x1f\x7f]', ''
 
 Write-Host ''
-Write-Host '======================================================'
-Write-Host ('  Laravel Foundry  |  {0}' -f $title)
-Write-Host '======================================================'
-Write-Host ('  Proyecto:       {0}' -f $name)
-Write-Host ('  Starter:        {0}' -f $starter)
-Write-Host ('  Base de datos:  {0} ({1})' -f $db, $dbName)
-Write-Host ('  Cola:           {0}' -f $queue)
-Write-Host ('  Correo:         {0}' -f $mail)
-Write-Host ('  Panel de BD:    {0}' -f $ui)
-Write-Host ('  HTTPS local:    {0}' -f $(if ($https) { 'si' } else { 'no' }))
-Write-Host ('  Tenancy:        {0} (solo configuracion)' -f $tenancy)
-Write-Host ('  Perfiles:       {0}' -f $profiles)
-Write-Host ''
-Write-Host 'SERVICIOS'
-if (-not $hasDockerStatus) { Write-Host '  Estado no comprobable: inicia Docker Desktop o revisa docker compose ps.' }
-Show-Service 'app' 'Laravel PHP'
-Show-Service 'web' 'Nginx'
-if ($https) { Show-Service 'caddy-local' 'HTTPS Caddy' }
-if ($db -ne 'sqlite') { Show-Service $db $db }
-if ($queue -ne 'sync') { Show-Service 'worker' 'Colas worker' }
-Show-Service 'scheduler' 'Scheduler'
-if ($queue -eq 'redis') { Show-Service 'redis' 'Redis' }
-if ($mail -eq 'mailpit') { Show-Service 'mailpit' 'Mailpit' }
-if ($ui -ne 'none') { Show-Service $ui $ui }
-Write-Host ''
-Write-Host 'ACCESOS EN EL NAVEGADOR'
+Write-Host '  ======================================================' -ForegroundColor DarkCyan
+Write-Host ('   LARAVEL FOUNDRY  /  {0}' -f $title) -ForegroundColor Cyan
+Write-Host '  ======================================================' -ForegroundColor DarkCyan
+
+Section 'Accesos web'
 $appReady = (Active 'app') -and (Active 'web')
-Show-Link 'Aplicacion HTTP' ("http://localhost:{0}" -f $httpPort) $appReady
 if ($https) {
     $suffix = if ($httpsPort -eq '443') { '' } else { ':' + $httpsPort }
-    Show-Link 'Aplicacion HTTPS' ("https://{0}{1}" -f $domain, $suffix) ($appReady -and (Active 'caddy-local'))
+    Show-Link 'APP PRINCIPAL' ("https://{0}{1}" -f $domain, $suffix) ($appReady -and (Active 'caddy-local')) $true
 }
+Show-Link 'Aplicacion HTTP' ("http://localhost:{0}" -f $httpPort) $appReady (-not $https)
 if ($mail -eq 'mailpit') {
     Show-Link 'Mailpit' ("http://localhost:{0}" -f (Setting 'MAILPIT_PORT' '8025')) (Active 'mailpit')
 }
@@ -111,13 +105,34 @@ if ($ui -in @('pgweb','phpmyadmin','adminer')) {
     Show-Link $ui ("http://localhost:{0}" -f (Setting 'DB_UI_PORT' '8081')) (Active $ui)
 }
 if ((-not $https) -and (Active 'node')) {
-    Write-Host ('  Vite (HMR):      http://localhost:{0} (herramienta, no panel GUI)' -f (Setting 'VITE_PORT' '5173'))
+    Show-Link 'Vite HMR' ("http://localhost:{0}" -f (Setting 'VITE_PORT' '5173')) $true
 }
-Write-Host ''
+
+Section 'Configuracion'
+Item 'Proyecto / starter' ("{0} / {1}" -f $name, $starter)
+Item 'Base de datos' ("{0}  |  {1}" -f $db, $dbName)
+Item 'Colas / correo' ("{0}  |  {1}" -f $queue, $mail)
+Item 'Panel de BD' $ui
+Item 'HTTPS / tenancy' ("{0}  |  {1}" -f $(if ($https) { 'Activado' } else { 'Desactivado' }), $tenancy)
+Item 'Perfiles' $profiles
+
+Section 'Contenedores'
+if (-not $hasDockerStatus) { Write-Host '  Docker no disponible: no se pueden verificar los servicios.' -ForegroundColor Yellow }
+Show-Service 'app' 'Laravel PHP'
+Show-Service 'web' 'Nginx'
+if ($https) { Show-Service 'caddy-local' 'HTTPS Caddy' }
+if ($db -ne 'sqlite') { Show-Service $db $db }
+if ($queue -ne 'sync') { Show-Service 'worker' 'Worker de colas' }
+Show-Service 'scheduler' 'Scheduler'
+if ($queue -eq 'redis') { Show-Service 'redis' 'Redis' }
+if ($mail -eq 'mailpit') { Show-Service 'mailpit' 'Mailpit' }
+if ($ui -ne 'none') { Show-Service $ui $ui }
+
+Section 'Notas'
 if ($https) {
-    Write-Host ('  HTTPS: configura hosts (127.0.0.1 {0}) y confia en la CA local con make https-setup.' -f $domain)
+    Write-Host ('  HTTPS local: hosts 127.0.0.1 {0} / ejecutar make https-setup.' -f $domain) -ForegroundColor Yellow
 }
-if ($tenancy -ne 'none') { Write-Host '  Tenancy es solo un blueprint: Laravel debe implementar el aislamiento.' }
-Write-Host '  Estado = contenedor en marcha; no garantiza que la web responda.'
-Write-Host '  Comandos: make status | make ps | make logs | make up-wait | make reconfigure'
-Write-Host '======================================================'
+if ($tenancy -ne 'none') { Write-Host '  Tenancy solo define el entorno; la aplicacion debe implementar el aislamiento.' -ForegroundColor Yellow }
+Write-Host '  [OK] = contenedor iniciado; no sustituye una prueba HTTP.' -ForegroundColor DarkGray
+Write-Host '  make status | make ps | make logs | make up-wait | make reconfigure' -ForegroundColor Gray
+Write-Host '  ======================================================' -ForegroundColor DarkCyan
