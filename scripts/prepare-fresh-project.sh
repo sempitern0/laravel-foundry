@@ -2,6 +2,14 @@
 set -eu
 root=$(pwd)
 if [ -f app/artisan ]; then exit 0; fi
+if [ -f .foundry-setup-pending ]; then
+  [ -f .env ] || { echo 'Setup pendiente sin .env; recupera su configuracion.' >&2; exit 2; }
+  saved=$(tr -d '\r\n' < .foundry-setup-pending)
+  current=$(sed -n 's/^PROJECT_NAME=//p' .env | tail -n 1 | tr -d '"\r')
+  [ -n "$saved" ] && [ "$current" = "$saved" ] || { echo 'Setup pendiente con identidad diferente; revisa .env.' >&2; exit 2; }
+  echo "Resuming incomplete setup: $saved"
+  exit 0
+fi
 if [ -f .foundry.json ]; then
   echo 'Configured project has no app/artisan. Restore its source before setup.' >&2
   exit 2
