@@ -155,3 +155,26 @@ La salud de contenedores no garantiza por si sola que las rutas de negocio
 funcionen. `make status` permanece como comando explicito para ver el estado;
 su fallo, cuando se invoca automaticamente tras arrancar, no anula un
 `docker compose up` correcto.
+
+## Recuperacion y avisos antes de perder datos
+
+Si el primer setup se interrumpe despues de completar el asistente, Foundry
+conserva las opciones en el .env local y un marcador ignorado por Git
+(`.foundry-setup-pending`). Al ejecutar `make setup` otra vez con el mismo
+nombre de proyecto, continua sin reemplazar las respuestas. Si la identidad
+difiere, se detiene para que compruebes el archivo: nunca lo corrige solo.
+
+Despues de completar la instalacion, Foundry conserva en
+`.foundry-runtime-state` solo el nombre Docker, motor y nombre de base de
+datos (sin credenciales). `make check`, `make up` y `make up-wait` impiden
+seguir silenciosamente si alguna de esas propiedades cambia: los datos pueden
+permanecer en los volumenes originales. En `make setup` se muestra la
+advertencia para que puedas revisar cambios intencionados durante una
+reconfiguracion. No existe migracion automatica entre motores ni entre
+identidades Docker.
+
+`make reset-project`, tras la confirmacion destructiva que ya requiere, borra
+tambien estas dos marcas locales. No elimina backups almacenados fuera de los
+volumenes del proyecto. Errores de Composer o Docker detienen el setup,
+conservan la configuracion anterior y muestran el comando que fallo y el
+siguiente paso para consultar logs y reintentar.
