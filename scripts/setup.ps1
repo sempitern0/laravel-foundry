@@ -2,6 +2,7 @@
 param([string]$Starter = '', [switch]$Reconfigure)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'docker-preflight.ps1')
 function Compose {
     param([string[]]$Cmd)
     & docker compose @Cmd
@@ -12,8 +13,12 @@ Push-Location -LiteralPath $root
 try {
     # Validate host prerequisites; the on-demand install remains a separate,
     # explicitly opt-in entry point, since make cannot install itself.
-    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-        throw 'Docker is missing. Run .\scripts\prerequisites.ps1 -InstallMissing first.'
+    $dockerStatus = Get-FoundryDockerStatus
+    if (-not $dockerStatus.Ready) {
+        Write-Host ''
+        Write-Host ('ERROR: ' + $dockerStatus.Message) -ForegroundColor Red
+        Write-Host 'No se ha modificado la configuración del proyecto.' -ForegroundColor Yellow
+        exit 1
     }
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
         Write-Warning 'Git for Windows is not available on the host; install it to clone/version projects.'
