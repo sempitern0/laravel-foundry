@@ -1,7 +1,8 @@
 [CmdletBinding()]
-param([switch]$Strict)
+param([switch]$Strict, [string]$Root)
 $ErrorActionPreference = 'Continue'
-$root = Split-Path -Parent $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($Root)) { $Root = Split-Path -Parent $PSScriptRoot }
+$root = $Root
 $settings = @{}
 foreach ($line in [IO.File]::ReadAllLines((Join-Path $root '.env'))) {
     if ($line -match '^([A-Z][A-Z0-9_]*)=(.*)$') { $settings[$Matches[1]] = $Matches[2].Trim('"') }
