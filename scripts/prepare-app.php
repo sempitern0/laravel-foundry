@@ -44,7 +44,7 @@ foreach ($directories as $directory) {
     }
 }
 
-echo "Laravel Foundry Laravel runtime directories are ready.\n";
+echo "[OK] Laravel runtime directories are ready.\n";
 
 if (!is_file($root.'/.env')) {
     if (!is_file($root.'/.env.example') || !copy($root.'/.env.example', $root.'/.env')) {

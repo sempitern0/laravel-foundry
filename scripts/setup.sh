@@ -42,5 +42,5 @@ fi
 docker compose up -d
 docker compose ps
 sh scripts/setup-checkpoint.sh complete
-sh scripts/check-http.sh || echo 'AVISO: fallo del diagnostico HTTP.'
-sh scripts/status.sh || echo 'AVISO: ejecuta make status para volver a mostrar el resumen.'
+sh scripts/check-http.sh || echo '[WARN] Laravel HTTP probe failed; inspect the application logs.'
+sh scripts/status.sh || echo '[WARN] Summary unavailable; run make status.'

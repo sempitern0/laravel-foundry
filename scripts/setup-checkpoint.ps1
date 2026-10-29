@@ -4,9 +4,9 @@ function Save-FoundrySetupCheckpoint {
     param([string]$Root)
     $envPath = Join-Path $Root '.env'
     $line = @(Get-Content -LiteralPath $envPath | Where-Object { $_ -match '^PROJECT_NAME=' } | Select-Object -Last 1)
-    if ($line.Count -ne 1) { throw 'Falta PROJECT_NAME; no se puede registrar el setup.' }
+    if ($line.Count -ne 1) { throw 'Missing PROJECT_NAME; cannot save the setup checkpoint.' }
     $name = ($line[0] -split '=',2)[1].Trim('"')
-    if ($name -cnotmatch '^[a-z][a-z0-9_-]{0,40}$') { throw 'PROJECT_NAME no valido.' }
+    if ($name -cnotmatch '^[a-z][a-z0-9_-]{0,40}$') { throw 'Invalid PROJECT_NAME.' }
     [IO.File]::WriteAllText((Join-Path $Root '.foundry-setup-pending'), $name + "`n", (New-Object Text.UTF8Encoding($false)))
 }
 function Complete-FoundrySetup {

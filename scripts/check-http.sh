@@ -4,10 +4,10 @@ cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 
 port=$(sed -n 's/^HTTP_PORT=//p' .env | tail -n 1 | tr -d '"\r')
 [ -n "$port" ] || port=8080
-case "$port" in ''|*[!0-9]*) echo 'AVISO: HTTP_PORT no es numerico. Revisa .env.' >&2; [ "${1:-}" != '--strict' ]; exit $?;; esac
+case "$port" in ''|*[!0-9]*) echo '[WARN] HTTP_PORT must be numeric. Review .env.' >&2; [ "${1:-}" != '--strict' ]; exit $?;; esac
 
 if ! command -v curl >/dev/null 2>&1; then
-  echo 'AVISO: curl no disponible. No se pudo comprobar Laravel por HTTP.' >&2
+  echo '[WARN] curl is unavailable; Laravel HTTP probe skipped.' >&2
   [ "${1:-}" != '--strict' ]
   exit $?
 fi
@@ -22,7 +22,7 @@ probe() {
 }
 
 if probe /up; then
-  echo "[OK] Laravel responde por HTTP (/up: $code)."
+  echo "[OK] Laravel responded over HTTP (/up: $code)."
   exit 0
 fi
 up_code=$code
@@ -31,7 +31,7 @@ up_code=$code
 # merely because another route happens to be served successfully.
 if [ "$up_code" = 404 ] || [ "$up_code" = 000 ]; then
   if probe /; then
-    echo "[OK] Laravel responde por HTTP (/: $code; /up: $up_code)."
+    echo "[OK] Laravel responded over HTTP (/: $code; /up: $up_code)."
     exit 0
   fi
   root_code=$code
@@ -39,6 +39,6 @@ else
   root_code='no consultado'
 fi
 
-echo "AVISO: Laravel no se ha verificado por HTTP (/up: $up_code; /: $root_code)." >&2
-echo 'Diagnostico: docker compose logs --tail=80 web app; make artisan CMD="about"' >&2
+echo "[WARN] Laravel HTTP probe failed (/up: $up_code; /: $root_code)." >&2
+echo 'Next steps: docker compose logs --tail=80 web app; make artisan CMD="about"' >&2
 [ "${1:-}" != '--strict' ]

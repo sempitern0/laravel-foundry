@@ -80,7 +80,7 @@ esac
 printf 'Foundry host: %s | filesystem: %s | uid:gid %s:%s\n' "$profile" "$location" "$uid" "$gid"
 case "$profile" in
   windows-native|wsl-windows-fs|linux-shared-fs)
-    echo 'Advisory: source files on a Windows/shared filesystem can slow Laravel and Vite. Prefer a WSL2 Linux home directory where possible.'
+    echo '[WARN] Shared filesystem may slow Laravel and Vite. Prefer a WSL2 Linux home directory where available.'
     ;;
 esac
 if [ "$action" = doctor ]; then

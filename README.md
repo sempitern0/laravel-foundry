@@ -108,6 +108,10 @@ The PHP-FPM runtime does not carry Composer or npm. The disposable Composer tool
 
 Foundry detects Windows, WSL2, Linux and macOS at setup and startup. It creates a local, ignored `compose.override.yaml` with host-specific UID/GID and watcher settings. A developer-owned override is never replaced. Run `make doctor` for host diagnostics or `make host-config` to regenerate the configuration. WSL2 checkouts on `/mnt/c` may be slower than Linux ext4; Foundry warns but never moves files or deletes volumes. See [Environment Intelligence](docs/ENVIRONMENT_INTELLIGENCE.md).
 
+## Terminal experience
+
+Foundry uses consistent English status and diagnostic messages and actionable next steps. `make status` distinguishes running containers from Docker healthcheck results and does not claim HTTP readiness. Docker, Artisan, Composer and npm commands preserve their original output and exit codes.
+
 ## Daily commands
 
 | Command | Purpose |

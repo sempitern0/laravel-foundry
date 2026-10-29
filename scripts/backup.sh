@@ -19,5 +19,5 @@ trap 'docker compose exec -T postgres rm -f "$remote" >/dev/null 2>&1 || true' E
 docker compose exec -T postgres pg_dump -Fc --no-owner --no-acl -U "$username" -d "$database" -f "$remote"
 docker compose cp "postgres:$remote" "backups/$file"
 [ -s "backups/$file" ] || { echo "Backup is empty." >&2; exit 1; }
-printf 'PostgreSQL dump saved: backups/%s\n' "$file"
+printf '[OK] PostgreSQL backup saved: backups/%s\n' "$file"
 echo "This is only a LOCAL backup. Set up encrypted offsite backups for production."

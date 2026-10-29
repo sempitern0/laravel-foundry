@@ -50,4 +50,4 @@ if($db==='sqlite'){
     $dbFile=$appRoot.'/database/database.sqlite';
     if(!file_exists($dbFile))touch($dbFile);
 }
-echo "Laravel environment configured ($db / $queue / $mail).\n";
+echo "[OK] Laravel environment configured ($db / $queue / $mail).\n";

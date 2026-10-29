@@ -49,118 +49,120 @@ help:
 	@echo "WARNING: reset-project removes generated app files and Docker volumes."
 
 setup:
-	$(HOST_PREPARE)
-	$(SETUP_SCRIPT) $(if $(strip $(STARTER)),$(if $(filter Windows_NT,$(OS)),-Starter "$(STARTER)","$(STARTER)"),)
+	@$(HOST_PREPARE)
+	@$(SETUP_SCRIPT) $(if $(strip $(STARTER)),$(if $(filter Windows_NT,$(OS)),-Starter "$(STARTER)","$(STARTER)"),)
 
 reconfigure:
+	@$(HOST_PREPARE)
 ifeq ($(OS),Windows_NT)
-	$(SETUP_SCRIPT) -Reconfigure
+	@$(SETUP_SCRIPT) -Reconfigure
 else
 	FOUNDRY_WIZARD_MODE=--reconfigure $(SETUP_SCRIPT)
 endif
 
 # Detached startup is the default. Readiness is optional and explicit.
 up:
-	$(PREFLIGHT_SCRIPT)
-	$(DC) up -d
-	-$(STATUS_SCRIPT)
+	@$(HOST_PREPARE)
+	@$(PREFLIGHT_SCRIPT)
+	@$(DC) up -d
+	-@$(STATUS_SCRIPT)
 
 up-detached: up
 
 up-wait:
-	$(HOST_PREPARE)
-	$(PREFLIGHT_SCRIPT)
-	$(DC) up -d --wait --wait-timeout 120
+	@$(HOST_PREPARE)
+	@$(PREFLIGHT_SCRIPT)
+	@$(DC) up -d --wait --wait-timeout 120
 	-$(HTTP_CHECK)
-	-$(STATUS_SCRIPT)
+	-@$(STATUS_SCRIPT)
 
 up-logs:
-	$(HOST_PREPARE)
-	$(DC) up
+	@$(HOST_PREPARE)
+	@$(DC) up
 
 # Retain containers/networks for fast daily resume; no destructive operations.
 start:
-	$(HOST_PREPARE)
-	$(PREFLIGHT_SCRIPT)
-	$(DC) start
-	-$(STATUS_SCRIPT)
+	@$(HOST_PREPARE)
+	@$(PREFLIGHT_SCRIPT)
+	@$(DC) start
+	-@$(STATUS_SCRIPT)
 
 stop:
-	$(DC) stop
+	@$(DC) stop
 
 restart: stop start
 
 down:
-	$(DC) $(ALL_PROFILES) down --remove-orphans
+	@$(DC) $(ALL_PROFILES) down --remove-orphans
 
 # Build explicit image targets; do not force Vite/HMR when HTTPS was selected.
 build: setup
 
 images:
-	$(HOST_PREPARE)
-	$(DC) build app composer node
+	@$(HOST_PREPARE)
+	@$(DC) build app composer node
 
 rebuild: build
-	$(DC) up -d --wait --wait-timeout 120 --force-recreate
+	@$(DC) up -d --wait --wait-timeout 120 --force-recreate
 
 doctor:
-	$(HOST_DOCTOR)
+	@$(HOST_DOCTOR)
 
 host-config:
-	$(HOST_PREPARE)
+	@$(HOST_PREPARE)
 
 check:
-	$(PREFLIGHT_SCRIPT)
+	@$(PREFLIGHT_SCRIPT)
 
 status:
-	$(STATUS_SCRIPT)
+	@$(STATUS_SCRIPT)
 
 ps:
-	$(DC) ps
+	@$(DC) ps
 
 logs:
-	$(DC) logs -f --tail=100
+	@$(DC) logs -f --tail=100
 
 config:
-	$(DC) config -q
+	@$(DC) config -q
 
 shell:
-	$(DC) exec app sh
+	@$(DC) exec app sh
 
 artisan:
-	$(DC) exec app php artisan $(CMD)
+	@$(DC) exec app php artisan $(CMD)
 
 composer:
-	$(DC) run --rm --no-deps composer composer $(CMD)
+	@$(DC) run --rm --no-deps composer composer $(CMD)
 
 npm:
-	$(DC) --profile dev run --rm --no-deps --entrypoint npm node $(CMD)
+	@$(DC) --profile dev run --rm --no-deps --entrypoint npm node $(CMD)
 
 migrate:
-	$(DC) exec app php artisan migrate
+	@$(DC) exec app php artisan migrate
 
 test:
-	$(DC) exec -e APP_ENV=testing -e APP_CONFIG_CACHE=cache/config.testing.php app php artisan test $(CMD)
+	@$(DC) exec -e APP_ENV=testing -e APP_CONFIG_CACHE=cache/config.testing.php app php artisan test $(CMD)
 
 # Composer lives in the toolbox, not in PHP-FPM. Check availability of
 # lint:check for the selected Laravel starter before invoking this target.
 lint:
-	$(DC) run --rm --no-deps composer composer run lint:check
+	@$(DC) run --rm --no-deps composer composer run lint:check
 
 worker:
-	$(DC) --profile workers up -d worker
+	@$(DC) --profile workers up -d worker
 
 scheduler:
-	$(DC) --profile scheduler up -d scheduler
+	@$(DC) --profile scheduler up -d scheduler
 
 redis:
-	$(DC) --profile redis up -d redis
+	@$(DC) --profile redis up -d redis
 
 backup:
 	$(BACKUP_SCRIPT)
 
 env-sync:
-	$(DC) run --rm --no-deps composer php /opt/letsgo/env-sync.php --root-only
+	@$(DC) run --rm --no-deps composer php /opt/letsgo/env-sync.php --root-only
 
 https-setup:
 	$(HTTPS_SCRIPT)

@@ -19,7 +19,7 @@ function Get-FoundryDockerStatus {
         return [pscustomobject]@{
             Ready = $false
             Reason = 'missing-cli'
-            Message = 'Docker no está instalado o no está disponible en PATH. Instala Docker Desktop y abre otra sesión de PowerShell.'
+            Message = 'Docker CLI is missing from PATH. Install Docker Desktop and open a new PowerShell session.'
         }
     }
 
@@ -27,7 +27,7 @@ function Get-FoundryDockerStatus {
         return [pscustomobject]@{
             Ready = $false
             Reason = 'missing-compose'
-            Message = 'Docker Compose v2 no está disponible. Actualiza Docker Desktop o instala el complemento Docker Compose v2.'
+            Message = 'Docker Compose v2 is unavailable. Update Docker Desktop or install the Compose v2 plugin.'
         }
     }
 
@@ -35,7 +35,7 @@ function Get-FoundryDockerStatus {
         return [pscustomobject]@{
             Ready = $false
             Reason = 'engine-unavailable'
-            Message = 'El motor de Docker no está disponible. Abre Docker Desktop y espera a que termine de iniciarse, o inicia el servicio Docker Engine. En Windows, usa el motor de contenedores Linux. Después vuelve a ejecutar make setup.'
+            Message = 'Docker Engine is unavailable. Start Docker Desktop with Linux containers and retry make setup once the engine is ready.'
         }
     }
 

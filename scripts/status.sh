@@ -42,29 +42,29 @@ active() { printf '%s\n' "$running" | grep -Fxq "$1"; }
 section() { printf '\n%s-- %s ------------------------------------------------%s\n' "$cyan" "$1" "$reset"; }
 item() { printf '  %-20s %s\n' "$1" "$2"; }
 service() {
-  if active "$1"; then state="${green}[OK] En marcha${reset}"
-  elif [ "$status" = unavailable ]; then state="${yellow}[?] No comprobable${reset}"
-  else state="${yellow}[--] Detenido${reset}"; fi
+  if active "$1"; then state="${green}[OK] running${reset}"
+  elif [ "$status" = unavailable ]; then state="${yellow}[?] unknown${reset}"
+  else state="${yellow}[--] stopped${reset}"; fi
   printf '  %-23s %s\n' "$2" "$state"
 }
 link() {
   if [ "$3" = yes ]; then printf '  %-20s %s%s%s\n' "$1" "$4" "$2" "$reset"
-  else printf '  %-20s %s[--] Configurado, detenido%s\n' "$1" "$yellow" "$reset"; fi
+  else printf '  %-20s %s[--] service not running%s\n' "$1" "$yellow" "$reset"; fi
 }
 ready=no
 if active app && active web; then ready=yes; fi
 printf '\n%s======================================================%s\n' "$cyan" "$reset"
 printf '%s  LARAVEL FOUNDRY  /  %s%s\n' "$cyan" "$label" "$reset"
 printf '%s======================================================%s\n' "$cyan" "$reset"
-section 'ACCESOS WEB'
+section 'ENDPOINTS'
 if [ "$https" = 1 ]; then
   suffix=":$https_port"; [ "$https_port" = 443 ] && suffix=''
   webready=no
   if [ "$ready" = yes ] && active caddy-local; then webready=yes; fi
-  link 'APP PRINCIPAL' "https://$domain$suffix" "$webready" "$green"
+  link 'Primary app' "https://$domain$suffix" "$webready" "$green"
 fi
 primary="$cyan"; [ "$https" = 1 ] || primary="$green"
-link 'Aplicacion HTTP' "http://localhost:$http_port" "$ready" "$primary"
+link 'Application HTTP' "http://localhost:$http_port" "$ready" "$primary"
 if [ "$mail" = mailpit ]; then
   enabled=no; active mailpit && enabled=yes
   link 'Mailpit' "http://localhost:$(setting MAILPIT_PORT 8025)" "$enabled" "$cyan"
@@ -77,27 +77,27 @@ esac
 if [ "$https" != 1 ] && active node; then
   link 'Vite HMR' "http://localhost:$(setting VITE_PORT 5173)" yes "$cyan"
 fi
-section 'CONFIGURACION'
-item 'Proyecto / starter' "$name / $starter"
-item 'Base de datos' "$db | $db_name"
-item 'Colas / correo' "$queue | $mail"
-item 'Panel de BD' "$ui"
+section 'CONFIGURATION'
+item 'Project / Starter' "$name / $starter"
+item 'Database' "$db | $db_name"
+item 'Queue / Mail' "$queue | $mail"
+item 'Database UI' "$ui"
 item 'HTTPS / tenancy' "$https | $tenancy"
-item 'Perfiles' "$profiles"
-section 'CONTENEDORES'
-[ "$status" = available ] || printf '  %sDocker no disponible: no se pueden verificar los servicios.%s\n' "$yellow" "$reset"
+item 'Profiles' "$profiles"
+section 'SERVICES'
+[ "$status" = available ] || printf '  %sDocker is unavailable; service status cannot be verified.%s\n' "$yellow" "$reset"
 service app 'Laravel PHP'
 service web 'Nginx'
 [ "$https" = 1 ] && service caddy-local 'HTTPS Caddy'
 [ "$db" = sqlite ] || service "$db" "$db"
-[ "$queue" = sync ] || service worker 'Worker de colas'
+[ "$queue" = sync ] || service worker 'Queue worker'
 service scheduler 'Scheduler'
 [ "$queue" = redis ] && service redis 'Redis'
 [ "$mail" = mailpit ] && service mailpit 'Mailpit'
 [ "$ui" = none ] || service "$ui" "$ui"
-section 'NOTAS'
+section 'NEXT STEPS'
 [ "$https" = 1 ] && printf '  %sHTTPS: hosts 127.0.0.1 %s / make https-setup.%s\n' "$yellow" "$domain" "$reset"
-[ "$tenancy" = none ] || printf '  %sTenancy requiere aislamiento implementado en Laravel.%s\n' "$yellow" "$reset"
-printf '  %s[OK] = contenedor iniciado, no prueba HTTP.%s\n' "$dim" "$reset"
+[ "$tenancy" = none ] || printf '  %sTenancy routing requires Laravel-level data isolation.%s\n' "$yellow" "$reset"
+printf '  %s[OK] = container started; this is not an HTTP health probe.%s\n' "$dim" "$reset"
 echo '  make status | make ps | make logs | make up-wait | make reconfigure'
 printf '%s======================================================%s\n' "$cyan" "$reset"

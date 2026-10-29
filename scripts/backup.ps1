@@ -33,8 +33,8 @@ try {
         if ((Get-Item -LiteralPath (Join-Path 'backups' $file)).Length -le 0) {
             throw 'The PostgreSQL backup is empty.'
         }
-        Write-Host "PostgreSQL dump saved: backups/$file"
-        Write-Host 'This is a LOCAL backup. Configure encrypted offsite backups for production.'
+        Write-Host "[OK] PostgreSQL backup saved: backups/$file"
+        Write-Host 'This is a local backup only. Configure encrypted offsite backups for production.'
     }
     finally {
         & docker compose exec -T postgres rm -f $remote | Out-Null

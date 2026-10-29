@@ -54,7 +54,7 @@ if ($Mode -eq 'Apply') {
 }
 Write-Host ("Foundry host: {0} | filesystem: {1} | uid:gid {2}:{3}" -f $profile,$location,$uid,$gid)
 if ($profile -in @('windows-native','wsl-windows-fs','linux-shared-fs')) {
-    Write-Warning 'Windows/shared source mounts may slow Laravel and Vite. Consider WSL2 ext4 for best I/O.'
+    Write-Warning 'Shared Windows filesystems can slow Laravel and Vite. Store the project under the WSL2 Linux filesystem for better file I/O.'
 }
 if ($Mode -eq 'Doctor') {
     if (Get-Command docker -ErrorAction SilentlyContinue) {
