@@ -15,5 +15,13 @@ try {
     Complete-FoundrySetup -Root $root
     if (Test-Path (Join-Path $root '.foundry-setup-pending')) { throw 'Pending setup marker remains after success' }
     if (-not (Select-String -LiteralPath (Join-Path $root '.foundry-runtime-state') -Pattern '^PROJECT_NAME=videoapp$' -Quiet)) { throw 'Completed identity missing' }
+    $statePath = Join-Path $root '.foundry-runtime-state'
+    $stateLines = @([IO.File]::ReadAllLines($statePath))
+    if ($stateLines.Count -ne 3) { throw 'Runtime identity must contain three distinct lines.' }
+    if ($stateLines[0] -ne 'PROJECT_NAME=videoapp' -or
+        $stateLines[1] -ne 'DB_ENGINE=postgres' -or
+        $stateLines[2] -ne 'DB_DATABASE=foundry') {
+        throw 'Runtime identity checkpoint contains unexpected values.'
+    }
     Write-Host 'PASS Windows interrupted setup resume and identity snapshot'
 } finally { if (Test-Path $root) { Remove-Item -LiteralPath $root -Force -Recurse } }
