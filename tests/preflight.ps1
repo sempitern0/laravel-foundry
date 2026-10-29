@@ -11,6 +11,15 @@ try {
   function docker { $global:LASTEXITCODE = 0; @('web','node') }
   & $scriptPath -Mode Run -Root $temp
   if ($LASTEXITCODE -ne 0) { throw 'Valid configuration rejected' }
+  $snapshot = Join-Path $temp '.foundry-runtime-state'
+  Set-Content -LiteralPath $snapshot -Value 'PROJECT_NAME=demo DB_ENGINE=mariadb DB_DATABASE=foundry'
+  Add-Content (Join-Path $temp '.env') 'DB_DATABASE=foundry'
+  & $scriptPath -Mode Run -Root $temp
+  $changed = $false
+  Set-Content -LiteralPath $snapshot -Value 'PROJECT_NAME=another-project DB_ENGINE=mariadb DB_DATABASE=foundry'
+  try { & $scriptPath -Mode Run -Root $temp } catch { $changed = $true }
+  if (-not $changed) { throw 'Real project identity drift was accepted.' }
+  Set-Content -LiteralPath $snapshot -Value 'PROJECT_NAME=demo DB_ENGINE=mariadb DB_DATABASE=foundry'
   Add-Content (Join-Path $temp '.env') 'HTTP_PORT=15173'
   $failed = $false
   try { & $scriptPath -Mode Run -Root $temp } catch {
