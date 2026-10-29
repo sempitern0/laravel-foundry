@@ -57,7 +57,7 @@ foreach ($item in @(
         throw "$($item.Key) must be between 1 and 65535."
     }
     if ($ports.ContainsKey($value)) {
-        throw "Duplicate port $value: $($ports[$value].Key) y $($item.Key). Update .env."
+        throw ('Duplicate port {0}: {1} and {2}. Update .env.' -f $value, $ports[$value].Key, $item.Key)
     }
     $ports[$value] = $item
 }
