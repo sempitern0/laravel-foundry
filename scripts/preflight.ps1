@@ -74,10 +74,10 @@ if ($Mode -eq 'Setup' -and (Test-Path -LiteralPath (Join-Path $root '.foundry.js
 $previousPath = Join-Path $root '.foundry-runtime-state'
 if (Test-Path -LiteralPath $previousPath) {
     $previous = @{}
-    foreach ($line in Get-Content -LiteralPath $previousPath) {
-        if ($line -match '^(PROJECT_NAME|DB_ENGINE|DB_DATABASE)=(.*)$') {
-            $previous[$Matches[1]] = $Matches[2]
-        }
+    $snapshot = [IO.File]::ReadAllText($previousPath)
+    foreach ($field in @('PROJECT_NAME','DB_ENGINE','DB_DATABASE')) {
+        $match = [regex]::Match($snapshot, '(?m)(?:^|\s)' + $field + '=([^\s]+)')
+        if ($match.Success) { $previous[$field] = $match.Groups[1].Value.Trim('"') }
     }
     foreach ($key in @('PROJECT_NAME', 'DB_ENGINE', 'DB_DATABASE')) {
         if (-not $previous.ContainsKey($key)) { continue }
