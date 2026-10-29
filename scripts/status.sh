@@ -82,7 +82,8 @@ item 'Project / Starter' "$name / $starter"
 item 'Database' "$db | $db_name"
 item 'Queue / Mail' "$queue | $mail"
 item 'Database UI' "$ui"
-item 'HTTPS / tenancy' "$https | $tenancy"
+if [ "$https" = 1 ]; then https_label=enabled; else https_label=disabled; fi
+item 'HTTPS / Tenancy' "$https_label | $tenancy"
 item 'Profiles' "$profiles"
 section 'SERVICES'
 [ "$status" = available ] || printf '  %sDocker is unavailable; service status cannot be verified.%s\n' "$yellow" "$reset"
