@@ -13,7 +13,12 @@ try {
   if ($LASTEXITCODE -ne 0) { throw 'Valid configuration rejected' }
   Add-Content (Join-Path $temp '.env') 'HTTP_PORT=15173'
   $failed = $false
-  try { & $scriptPath -Mode Run -Root $temp } catch { $failed = $true }
+  try { & $scriptPath -Mode Run -Root $temp } catch {
+    $failed = $true
+    if ($_.Exception.Message -notmatch 'Duplicate port 15173:' -or $_.Exception.Message -notmatch 'Update \.env') {
+      throw "Duplicate-port error must be actionable English: $($_.Exception.Message)"
+    }
+  }
   if (-not $failed) { throw 'Duplicate port accepted' }
   Write-Host 'PASS Windows preflight validates options and rejects duplicate ports'
 } finally { if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Recurse -Force } }
