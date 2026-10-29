@@ -6,6 +6,8 @@ RESET_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/
 HTTPS_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/https-setup.ps1
 STATUS_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/status.ps1
 PREFLIGHT_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/preflight.ps1
+HOST_PREPARE := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/environment.ps1 -Mode Apply
+HOST_DOCTOR := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/environment.ps1 -Mode Doctor
 HTTP_CHECK := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/check-http.ps1
 TENANCY_CHECK_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/tenancy-check.ps1
 else
@@ -16,6 +18,8 @@ RESET_SCRIPT := sh scripts/reset-project.sh
 HTTPS_SCRIPT := sh scripts/https-setup.sh
 STATUS_SCRIPT := sh scripts/status.sh
 PREFLIGHT_SCRIPT := sh scripts/preflight.sh
+HOST_PREPARE := sh scripts/environment.sh apply
+HOST_DOCTOR := sh scripts/environment.sh doctor
 HTTP_CHECK := sh scripts/check-http.sh
 TENANCY_CHECK_SCRIPT := sh scripts/tenancy-check.sh
 endif
@@ -26,14 +30,14 @@ STARTER ?=
 # Explicit all-profiles stop also removes containers started manually through a
 # profile not included in the current .env.
 ALL_PROFILES := --profile dev --profile tools --profile workers --profile scheduler --profile redis --profile https --profile postgres --profile mariadb --profile mysql --profile phpmyadmin --profile mailpit --profile pgweb --profile adminer
-.PHONY: help check status setup reconfigure up up-detached up-wait up-logs start stop restart down build images rebuild ps logs shell artisan composer npm migrate test lint backup env-sync https-setup reset-project worker scheduler redis config tenancy-check
+.PHONY: help check status doctor host-config setup reconfigure up up-detached up-wait up-logs start stop restart down build images rebuild ps logs shell artisan composer npm migrate test lint backup env-sync https-setup reset-project worker scheduler redis config tenancy-check
 
 help:
 	@echo "Laravel Foundry - self-hosted Laravel environments with Docker Compose"
 	@echo ""
 	@echo "Setup:       make setup [STARTER=laravel|svelte|vue|react|livewire]"
 	@echo "Lifecycle:   make up | up-wait | up-logs | start | stop | restart | down"
-	@echo "Environment: make build | rebuild (restore settings, dependencies and assets)"
+	@echo "Environment: make build | rebuild | doctor | host-config"
 	@echo "Images only: make images"
 	@echo "Diagnostics: make check | status | ps | logs | config | shell"
 	@echo "Laravel:     make artisan CMD='route:list' | migrate | test | lint"
@@ -45,107 +49,120 @@ help:
 	@echo "WARNING: reset-project removes generated app files and Docker volumes."
 
 setup:
-	$(SETUP_SCRIPT) $(if $(strip $(STARTER)),$(if $(filter Windows_NT,$(OS)),-Starter "$(STARTER)","$(STARTER)"),)
+	@$(HOST_PREPARE)
+	@$(SETUP_SCRIPT) $(if $(strip $(STARTER)),$(if $(filter Windows_NT,$(OS)),-Starter "$(STARTER)","$(STARTER)"),)
 
 reconfigure:
+	@$(HOST_PREPARE)
 ifeq ($(OS),Windows_NT)
-	$(SETUP_SCRIPT) -Reconfigure
+	@$(SETUP_SCRIPT) -Reconfigure
 else
 	FOUNDRY_WIZARD_MODE=--reconfigure $(SETUP_SCRIPT)
 endif
 
 # Detached startup is the default. Readiness is optional and explicit.
 up:
-	$(PREFLIGHT_SCRIPT)
-	$(DC) up -d
-	-$(STATUS_SCRIPT)
+	@$(HOST_PREPARE)
+	@$(PREFLIGHT_SCRIPT)
+	@$(DC) up -d
+	-@$(STATUS_SCRIPT)
 
 up-detached: up
 
 up-wait:
-	$(PREFLIGHT_SCRIPT)
-	$(DC) up -d --wait --wait-timeout 120
+	@$(HOST_PREPARE)
+	@$(PREFLIGHT_SCRIPT)
+	@$(DC) up -d --wait --wait-timeout 120
 	-$(HTTP_CHECK)
-	-$(STATUS_SCRIPT)
+	-@$(STATUS_SCRIPT)
 
 up-logs:
-	$(DC) up
+	@$(HOST_PREPARE)
+	@$(DC) up
 
 # Retain containers/networks for fast daily resume; no destructive operations.
 start:
-	$(PREFLIGHT_SCRIPT)
-	$(DC) start
-	-$(STATUS_SCRIPT)
+	@$(HOST_PREPARE)
+	@$(PREFLIGHT_SCRIPT)
+	@$(DC) start
+	-@$(STATUS_SCRIPT)
 
 stop:
-	$(DC) stop
+	@$(DC) stop
 
 restart: stop start
 
 down:
-	$(DC) $(ALL_PROFILES) down --remove-orphans
+	@$(DC) $(ALL_PROFILES) down --remove-orphans
 
 # Build explicit image targets; do not force Vite/HMR when HTTPS was selected.
 build: setup
 
 images:
-	$(DC) build app composer node
+	@$(HOST_PREPARE)
+	@$(DC) build app composer node
 
 rebuild: build
-	$(DC) up -d --wait --wait-timeout 120 --force-recreate
+	@$(DC) up -d --wait --wait-timeout 120 --force-recreate
+
+doctor:
+	@$(HOST_DOCTOR)
+
+host-config:
+	@$(HOST_PREPARE)
 
 check:
-	$(PREFLIGHT_SCRIPT)
+	@$(PREFLIGHT_SCRIPT)
 
 status:
-	$(STATUS_SCRIPT)
+	@$(STATUS_SCRIPT)
 
 ps:
-	$(DC) ps
+	@$(DC) ps
 
 logs:
-	$(DC) logs -f --tail=100
+	@$(DC) logs -f --tail=100
 
 config:
-	$(DC) config -q
+	@$(DC) config -q
 
 shell:
-	$(DC) exec app sh
+	@$(DC) exec app sh
 
 artisan:
-	$(DC) exec app php artisan $(CMD)
+	@$(DC) exec app php artisan $(CMD)
 
 composer:
-	$(DC) run --rm --no-deps composer composer $(CMD)
+	@$(DC) run --rm --no-deps composer composer $(CMD)
 
 npm:
-	$(DC) --profile dev run --rm --no-deps --entrypoint npm node $(CMD)
+	@$(DC) --profile dev run --rm --no-deps --entrypoint npm node $(CMD)
 
 migrate:
-	$(DC) exec app php artisan migrate
+	@$(DC) exec app php artisan migrate
 
 test:
-	$(DC) exec -e APP_ENV=testing -e APP_CONFIG_CACHE=cache/config.testing.php app php artisan test $(CMD)
+	@$(DC) exec -e APP_ENV=testing -e APP_CONFIG_CACHE=cache/config.testing.php app php artisan test $(CMD)
 
 # Composer lives in the toolbox, not in PHP-FPM. Check availability of
 # lint:check for the selected Laravel starter before invoking this target.
 lint:
-	$(DC) run --rm --no-deps composer composer run lint:check
+	@$(DC) run --rm --no-deps composer composer run lint:check
 
 worker:
-	$(DC) --profile workers up -d worker
+	@$(DC) --profile workers up -d worker
 
 scheduler:
-	$(DC) --profile scheduler up -d scheduler
+	@$(DC) --profile scheduler up -d scheduler
 
 redis:
-	$(DC) --profile redis up -d redis
+	@$(DC) --profile redis up -d redis
 
 backup:
 	$(BACKUP_SCRIPT)
 
 env-sync:
-	$(DC) run --rm --no-deps composer php /opt/letsgo/env-sync.php --root-only
+	@$(DC) run --rm --no-deps composer php /opt/letsgo/env-sync.php --root-only
 
 https-setup:
 	$(HTTPS_SCRIPT)

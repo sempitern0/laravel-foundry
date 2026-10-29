@@ -5,7 +5,7 @@ Set-StrictMode -Version Latest
 if ([string]::IsNullOrWhiteSpace($Root)) { $Root = Split-Path -Parent $PSScriptRoot }
 $root = $Root
 $path = Join-Path $root '.env'
-if (-not (Test-Path -LiteralPath $path)) { throw 'Falta .env. Ejecuta make setup.' }
+if (-not (Test-Path -LiteralPath $path)) { throw 'Missing .env. Run make setup.' }
 $cfg = @{}
 foreach ($line in [IO.File]::ReadAllLines($path)) {
     if ($line -match '^([A-Z][A-Z0-9_]*)=(.*)$') {
@@ -23,7 +23,7 @@ $queue = Val 'QUEUE_ENGINE' 'sync'
 $mail = Val 'MAIL_ENGINE' 'mailpit'
 $ui = Val 'DB_UI' 'none'
 $https = Val 'HTTPS_ENABLED' '0'
-if ($name -cnotmatch '^[a-z][a-z0-9_-]{0,40}$') { throw 'PROJECT_NAME debe comenzar por una letra y usar solo minusculas, numeros, - o _.' }
+if ($name -cnotmatch '^[a-z][a-z0-9_-]{0,40}$') { throw 'PROJECT_NAME must start with a lowercase letter and contain only lowercase letters, digits, - or _.' }
 $choices = @{
     DB_ENGINE = @('postgres','mysql','mariadb','sqlite')
     QUEUE_ENGINE = @('sync','database','redis')
@@ -33,15 +33,15 @@ $choices = @{
     TENANCY_MODE = @('none','shared-db','database-per-tenant')
 }
 foreach ($key in $choices.Keys) {
-    if ((Val $key '') -cnotin $choices[$key]) { throw "Valor incompatible de $key. Ejecuta make reconfigure." }
+    if ((Val $key '') -cnotin $choices[$key]) { throw "Invalid $key. Run make reconfigure." }
 }
 if (($db -eq 'sqlite' -and $ui -ne 'none') -or
     ($ui -eq 'pgweb' -and $db -ne 'postgres') -or
     ($ui -eq 'phpmyadmin' -and $db -notin @('mysql','mariadb'))) {
-    throw "La GUI $ui no es compatible con $db. Ejecuta make reconfigure."
+    throw "Database UI $ui is incompatible with $db. Run make reconfigure."
 }
 if ($https -eq '1' -and (Val 'LOCAL_DOMAIN' '') -notmatch '^[a-z0-9][a-z0-9.-]*\.test$') {
-    throw 'HTTPS requiere LOCAL_DOMAIN terminado en .test.'
+    throw 'HTTPS requires LOCAL_DOMAIN to end in .test.'
 }
 $ports = @{}
 foreach ($item in @(
@@ -54,38 +54,38 @@ foreach ($item in @(
     if (-not $item.Enabled) { continue }
     $value = Val $item.Key $item.Default
     if ($value -notmatch '^[0-9]{1,5}$' -or [int]$value -lt 1 -or [int]$value -gt 65535) {
-        throw "$($item.Key) debe estar entre 1 y 65535."
+        throw "$($item.Key) must be between 1 and 65535."
     }
     if ($ports.ContainsKey($value)) {
-        throw "Puerto $value duplicado: $($ports[$value].Key) y $($item.Key). Modifica .env."
+        throw ('Duplicate port {0}: {1} and {2}. Update .env.' -f $value, $ports[$value].Key, $item.Key)
     }
     $ports[$value] = $item
 }
 if ($Mode -eq 'Run' -and (-not (Test-Path -LiteralPath (Join-Path $root 'app/artisan')) -or
         -not (Test-Path -LiteralPath (Join-Path $root 'app/composer.json')))) {
-    throw 'Falta Laravel (app/artisan o composer.json). Ejecuta make setup antes de iniciar.'
+    throw 'Laravel source is missing (app/artisan or composer.json). Run make setup.'
 }
 if ($Mode -eq 'Setup' -and (Test-Path -LiteralPath (Join-Path $root '.foundry.json')) -and
     -not (Test-Path -LiteralPath (Join-Path $root 'app/artisan'))) {
-    throw 'Existe .foundry.json pero falta Laravel: recupera el codigo, no se reemplazara.'
+    throw 'The portable manifest exists but Laravel source is missing. Restore app/ before continuing.'
 }
 
 # Protect the last successfully configured Compose identity and database.
 $previousPath = Join-Path $root '.foundry-runtime-state'
 if (Test-Path -LiteralPath $previousPath) {
     $previous = @{}
-    foreach ($line in Get-Content -LiteralPath $previousPath) {
-        if ($line -match '^(PROJECT_NAME|DB_ENGINE|DB_DATABASE)=(.*)$') {
-            $previous[$Matches[1]] = $Matches[2]
-        }
+    $snapshot = [IO.File]::ReadAllText($previousPath)
+    foreach ($field in @('PROJECT_NAME','DB_ENGINE','DB_DATABASE')) {
+        $match = [regex]::Match($snapshot, '(?m)(?:^|\s)' + $field + '=([^\s]+)')
+        if ($match.Success) { $previous[$field] = $match.Groups[1].Value.Trim('"') }
     }
     foreach ($key in @('PROJECT_NAME', 'DB_ENGINE', 'DB_DATABASE')) {
         if (-not $previous.ContainsKey($key)) { continue }
         $current = Val $key ''
         if ($previous[$key] -cne $current) {
-            $message = "ATENCION: $key ha cambiado desde el ultimo setup correcto ($($previous[$key]) -> $current). Los datos anteriores permanecen en sus volumenes."
+            $message = "WARNING: $key changed since the last successful setup ($($previous[$key]) -> $current). Existing data remains in the previous Docker volumes."
             if ($Mode -eq 'Run') {
-                throw "$message Revisa el cambio antes de iniciar y usa make reconfigure si es intencional."
+                throw "$message Review the change and run make reconfigure if intentional."
             }
             Write-Warning $message
         }
@@ -98,7 +98,7 @@ try {
     if ($LASTEXITCODE -eq 0) {
         foreach ($line in $lines) { $owned[([string]$line).Trim()] = $true }
     }
-} catch { Write-Warning 'No se pudieron identificar los contenedores propios; se revisaran los puertos.' }
+} catch { Write-Warning 'Could not identify project containers; checking ports.' }
 foreach ($entry in $ports.GetEnumerator()) {
     $port = [int]$entry.Key
     $service = [string]$entry.Value.Service
@@ -108,9 +108,9 @@ foreach ($entry in $ports.GetEnumerator()) {
         $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,$port)
         $listener.Start()
     } catch [Net.Sockets.SocketException] {
-        throw "El puerto $port ($($entry.Value.Key)) ya esta ocupado. Cierra la otra aplicacion o cambia el puerto en .env; comprueba con Get-NetTCPConnection -LocalPort $port."
+        throw "El puerto $port ($($entry.Value.Key)) is occupied. Stop the conflicting service or update .env; inspect using Get-NetTCPConnection -LocalPort $port."
     } finally {
         if ($null -ne $listener) { $listener.Stop() }
     }
 }
-Write-Host '[OK] Configuracion y puertos locales comprobados.' -ForegroundColor Green
+Write-Host '[OK] Configuration and local ports validated.' -ForegroundColor Green

@@ -18,7 +18,7 @@ try {
   }
   $output = (& $statusScript -Root $temp 6>&1 | Out-String)
   if ($output -notmatch 'https://videoapp.test') { throw 'HTTPS URL missing from status output' }
-  if ($output -notmatch 'APP PRINCIPAL') { throw 'Primary URL not highlighted' }
+  if ($output -notmatch 'Primary app') { throw 'Primary URL not highlighted' }
   if ($output -match 'DO-NOT-PRINT-THIS') { throw 'Status leaked a credential' }
   Write-Host 'PASS Windows status script parameter binding and GUI output'
 } finally { if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Recurse -Force } }

@@ -14,6 +14,12 @@ jobs:
             sh -n "$script"
             bash -n "$script"
           done
+      - name: Test host environment detection and overrides
+        run: |
+          python3 tests/environment-detection.py
+          python3 tests/console-messages.py
+          make -n doctor
+          make -n host-config
       - name: Test Unix portability and setup safety
         run: python3 tests/unix-portability.py
       - name: Test HTTPS certificate export retries

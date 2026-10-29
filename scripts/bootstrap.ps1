@@ -9,9 +9,9 @@ function Invoke-Compose {
     param([string[]]$Arguments)
     & docker compose @Arguments
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR Docker Compose (codigo $LASTEXITCODE): $($Arguments -join ' ')" -ForegroundColor Red
-        Write-Host 'Consulta make logs y reintenta make setup; no se sobrescribira el codigo Laravel.' -ForegroundColor Yellow
-        throw "Docker Compose termino con codigo $LASTEXITCODE."
+        Write-Host "[ERROR] Docker Compose failed (exit code $LASTEXITCODE): $($Arguments -join ' ')" -ForegroundColor Red
+        Write-Host 'Run make logs and retry make setup; existing Laravel source will be preserved.' -ForegroundColor Yellow
+        throw "Docker Compose failed (exit code $LASTEXITCODE)."
     }
 }
 
@@ -76,7 +76,7 @@ try {
         Invoke-Compose -Arguments @('run', '--rm', '--no-deps', 'composer', 'sh', '-c', 'node --version && npm --version')
 
         Invoke-Compose -Arguments @('run','--rm','--no-deps','composer','php','/opt/letsgo/prepare-app.php')
-        Write-Host 'Instalando dependencias PHP en el volumen Docker (primera instalación puede tardar)...'
+        Write-Host 'Installing PHP dependencies to the Docker volume (first run may take longer)...'
         Invoke-Compose -Arguments @('run','--rm','--no-deps','composer','composer','install','--no-interaction','--prefer-dist','--no-progress')
         return
     }

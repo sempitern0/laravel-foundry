@@ -24,8 +24,8 @@ function Test-Ready {
     Write-Host ("Git: {0} | Docker: {1} | Compose v2: {2} | GNU Make: {3}" -f $git,$docker,$compose,$make)
     return [bool]($docker -and $git -and $compose -and $make)
 }
-Write-Host "Laravel Foundry - Windows prerequisites"
-if (Test-Ready) { Write-Host 'Prerequisites present.'; exit 0 }
+Write-Host "LARAVEL FOUNDRY | Windows prerequisites"
+if (Test-Ready) { Write-Host '[OK] All required tools are available.'; exit 0 }
 if (-not $InstallMissing) {
     Write-Host 'Run .\scripts\prerequisites.ps1 -InstallMissing to request installation of missing tools.'
     exit 1

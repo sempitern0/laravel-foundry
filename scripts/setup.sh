@@ -12,6 +12,7 @@ docker info --format '{{.ServerVersion}}' >/dev/null 2>&1 || {
 # suppress infrastructure questions. app/ can be empty at this point.
 sh scripts/prepare-fresh-project.sh
 [ -f .env ] || cp .env.example .env
+sh scripts/environment.sh apply
 docker compose build composer
 docker compose run --rm --no-deps composer php /opt/letsgo/env-sync.php --root-only
 docker compose run --rm --no-deps composer php /opt/letsgo/project-config.php restore
@@ -41,5 +42,5 @@ fi
 docker compose up -d
 docker compose ps
 sh scripts/setup-checkpoint.sh complete
-sh scripts/check-http.sh || echo 'AVISO: fallo del diagnostico HTTP.'
-sh scripts/status.sh || echo 'AVISO: ejecuta make status para volver a mostrar el resumen.'
+sh scripts/check-http.sh || echo '[WARN] Laravel HTTP probe failed; inspect the application logs.'
+sh scripts/status.sh || echo '[WARN] Summary unavailable; run make status.'

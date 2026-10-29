@@ -9,31 +9,31 @@ function Initialize-FoundryFreshProject {
     $manifest = Join-Path $Root '.foundry.json'
     if (Test-Path -LiteralPath (Join-Path $app 'artisan')) { return $false }
     if (Test-Path -LiteralPath $manifest) {
-        throw 'Existe .foundry.json pero falta app/artisan. Recupera el codigo antes de reiniciar setup.'
+        throw 'Portable manifest exists but app/artisan is missing. Restore Laravel source before restarting setup.'
     }
     $pending = Join-Path $Root '.foundry-setup-pending'
     if (Test-Path -LiteralPath $pending) {
         $savedName = [IO.File]::ReadAllText($pending).Trim()
         $envPath = Join-Path $Root '.env'
-        if (-not (Test-Path -LiteralPath $envPath)) { throw 'Setup pendiente sin .env: recupera la configuracion anterior.' }
+        if (-not (Test-Path -LiteralPath $envPath)) { throw 'Interrupted setup is missing .env; restore its configuration.' }
         $currentName = @(Get-Content -LiteralPath $envPath | Where-Object { $_ -match '^PROJECT_NAME=' } | Select-Object -Last 1)
         if ($currentName.Count -ne 1 -or (($currentName[0] -split '=',2)[1].Trim('"')) -cne $savedName) {
-            throw 'Setup pendiente con identidad distinta. No se sustituye la configuracion automaticamente.'
+            throw 'Interrupted setup has a different project identity; no automatic replacement will occur.'
         }
-        Write-Host "Reanudando setup pendiente de $savedName sin perder las opciones guardadas."
+        Write-Host "Resuming interrupted setup for $savedName; preserving saved choices."
         return $false
     }
 
     if (Test-Path -LiteralPath $app) {
         $unexpected = @(Get-FoundryUnexpectedAppEntries -AppPath $app)
         if ($unexpected.Count -gt 0) {
-            throw 'app/ contiene archivos pero no artisan. No se modificará ni sobrescribirá su contenido.'
+            throw 'app/ contains files but no artisan; Foundry will not overwrite the directory.'
         }
     }
 
     $example = Join-Path $Root '.env.example'
     $environment = Join-Path $Root '.env'
-    if (-not (Test-Path -LiteralPath $example)) { throw 'Falta .env.example; no se puede preparar un proyecto nuevo.' }
+    if (-not (Test-Path -LiteralPath $example)) { throw 'Missing .env.example; cannot prepare a new project.' }
 
     $defaults = [System.IO.File]::ReadAllText($example)
     if (Test-Path -LiteralPath $environment) {
@@ -43,7 +43,7 @@ function Initialize-FoundryFreshProject {
             [void](New-Item -ItemType Directory -Path $backupDir -Force)
             $backupName = 'foundry-env-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff') + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 8) + '.bak'
             Copy-Item -LiteralPath $environment -Destination (Join-Path $backupDir $backupName) -ErrorAction Stop
-            Write-Host 'Configuración local anterior guardada en app-backups/. Se iniciará un proyecto nuevo.'
+            Write-Host 'Previous local configuration saved under app-backups/. Starting a new project.'
         }
     }
 
@@ -60,6 +60,6 @@ function Initialize-FoundryFreshProject {
     $hint = Join-Path $Root '.foundry-starter'
     if (Test-Path -LiteralPath $hint) { Remove-Item -LiteralPath $hint -Force }
 
-    Write-Host "Proyecto nuevo: $name. Selecciona la configuración en el asistente."
+    Write-Host "New project: $name. Select its configuration in the setup wizard."
     return $true
 }

@@ -30,6 +30,6 @@ foreach ($path in @('/up', '/')) {
         break
     }
 }
-if ($success) { Write-Host '[OK] Laravel responde por HTTP.' -ForegroundColor Green; exit 0 }
-Write-Warning "Laravel no verificado (/up: $upCode; /: $rootCode). Revisa: docker compose logs --tail=80 web app; make artisan CMD='about'."
+if ($success) { Write-Host '[OK] Laravel responded to the HTTP health probe.' -ForegroundColor Green; exit 0 }
+Write-Warning "Laravel HTTP probe failed (/up: $upCode; /: $rootCode). Review: docker compose logs --tail=80 web app; make artisan CMD='about'."
 if ($Strict) { exit 1 }

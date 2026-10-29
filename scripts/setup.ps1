@@ -10,9 +10,9 @@ function Compose {
     & docker compose @Cmd
     if ($LASTEXITCODE -ne 0) {
         $operation = ($Cmd -join ' ')
-        Write-Host "ERROR en Docker Compose (codigo $LASTEXITCODE): $operation" -ForegroundColor Red
-        Write-Host 'Comprueba Docker Desktop y ejecuta make ps o make logs. Puedes reintentar make setup: se conserva el progreso.' -ForegroundColor Yellow
-        throw "Docker Compose termino con codigo $LASTEXITCODE."
+        Write-Host "[ERROR] Docker Compose failed (exit code $LASTEXITCODE): $operation" -ForegroundColor Red
+        Write-Host 'Check Docker Desktop; run make ps or make logs. Retry make setup to resume.' -ForegroundColor Yellow
+        throw "Docker Compose failed (exit code $LASTEXITCODE)."
     }
 }
 $root = Split-Path -Parent $PSScriptRoot
@@ -24,7 +24,7 @@ try {
     if (-not $dockerStatus.Ready) {
         Write-Host ''
         Write-Host ('ERROR: ' + $dockerStatus.Message) -ForegroundColor Red
-        Write-Host 'No se ha modificado la configuración del proyecto.' -ForegroundColor Yellow
+        Write-Host 'Project configuration was not modified.' -ForegroundColor Yellow
         exit 1
     }
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -36,6 +36,7 @@ try {
     if (-not (Test-Path -LiteralPath '.env')) {
         Copy-Item -LiteralPath '.env.example' -Destination '.env'
     }
+    & (Join-Path $PSScriptRoot 'environment.ps1') -Mode Apply
     Compose -Cmd @('build','composer')
     Compose -Cmd @('run','--rm','--no-deps','composer','php','/opt/letsgo/env-sync.php','--root-only')
     Compose -Cmd @('run','--rm','--no-deps','composer','php','/opt/letsgo/project-config.php','restore')
@@ -70,7 +71,7 @@ try {
     Compose -Cmd @('up','-d')
     Compose -Cmd @('ps')
     Complete-FoundrySetup -Root $root
-    try { & (Join-Path $PSScriptRoot 'check-http.ps1') } catch { Write-Warning 'Comprobacion HTTP no disponible.' }
-    try { & (Join-Path $PSScriptRoot 'status.ps1') } catch { Write-Warning 'No se pudo mostrar el resumen; prueba make status.' }
+    try { & (Join-Path $PSScriptRoot 'check-http.ps1') } catch { Write-Warning 'HTTP health check unavailable; run make up-wait for diagnostics.' }
+    try { & (Join-Path $PSScriptRoot 'status.ps1') } catch { Write-Warning 'Status display failed; run make status.' }
 
 } finally { Pop-Location }

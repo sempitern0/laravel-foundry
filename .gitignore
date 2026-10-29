@@ -62,3 +62,8 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 .npm/
+
+# Host-specific generated Docker Compose configuration
+/compose.override.yaml
+/.foundry-host-override.*
+/.foundry-host.json
