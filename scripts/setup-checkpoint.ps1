@@ -18,7 +18,11 @@ function Complete-FoundrySetup {
         }
     }
     if (-not $config.ContainsKey('PROJECT_NAME')) { throw 'Falta PROJECT_NAME.' }
-    $lines = @('PROJECT_NAME=' + $config['PROJECT_NAME'], 'DB_ENGINE=' + $config['DB_ENGINE'], 'DB_DATABASE=' + $config['DB_DATABASE'])
+    $lines = @(
+        ('PROJECT_NAME={0}' -f $config['PROJECT_NAME'])
+        ('DB_ENGINE={0}' -f $config['DB_ENGINE'])
+        ('DB_DATABASE={0}' -f $config['DB_DATABASE'])
+    )
     [IO.File]::WriteAllLines((Join-Path $Root '.foundry-runtime-state'), $lines, (New-Object Text.UTF8Encoding($false)))
     Remove-Item -LiteralPath (Join-Path $Root '.foundry-setup-pending') -Force -ErrorAction SilentlyContinue
 }
