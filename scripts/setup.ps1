@@ -36,6 +36,7 @@ try {
     if (-not (Test-Path -LiteralPath '.env')) {
         Copy-Item -LiteralPath '.env.example' -Destination '.env'
     }
+    & (Join-Path $PSScriptRoot 'environment.ps1') -Mode Apply
     Compose -Cmd @('build','composer')
     Compose -Cmd @('run','--rm','--no-deps','composer','php','/opt/letsgo/env-sync.php','--root-only')
     Compose -Cmd @('run','--rm','--no-deps','composer','php','/opt/letsgo/project-config.php','restore')

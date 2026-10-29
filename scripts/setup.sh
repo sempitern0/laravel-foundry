@@ -12,6 +12,7 @@ docker info --format '{{.ServerVersion}}' >/dev/null 2>&1 || {
 # suppress infrastructure questions. app/ can be empty at this point.
 sh scripts/prepare-fresh-project.sh
 [ -f .env ] || cp .env.example .env
+sh scripts/environment.sh apply
 docker compose build composer
 docker compose run --rm --no-deps composer php /opt/letsgo/env-sync.php --root-only
 docker compose run --rm --no-deps composer php /opt/letsgo/project-config.php restore

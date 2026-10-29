@@ -104,6 +104,10 @@ sh scripts/setup.sh svelte
 
 The PHP-FPM runtime does not carry Composer or npm. The disposable Composer toolbox contains Node/npm because official Laravel starter hooks may invoke npm. The Node/Vite container contains PHP CLI because Wayfinder can invoke `php artisan` while building frontend assets. Containers share project files and selected Docker volumes; networks are separation of responsibilities, **not a full sandbox for untrusted dependencies**.
 
+## Automatic host adaptation
+
+Foundry detects Windows, WSL2, Linux and macOS at setup and startup. It creates a local, ignored `compose.override.yaml` with host-specific UID/GID and watcher settings. A developer-owned override is never replaced. Run `make doctor` for host diagnostics or `make host-config` to regenerate the configuration. WSL2 checkouts on `/mnt/c` may be slower than Linux ext4; Foundry warns but never moves files or deletes volumes. See [Environment Intelligence](docs/ENVIRONMENT_INTELLIGENCE.md).
+
 ## Daily commands
 
 | Command | Purpose |

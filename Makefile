@@ -6,6 +6,8 @@ RESET_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/
 HTTPS_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/https-setup.ps1
 STATUS_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/status.ps1
 PREFLIGHT_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/preflight.ps1
+HOST_PREPARE := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/environment.ps1 -Mode Apply
+HOST_DOCTOR := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/environment.ps1 -Mode Doctor
 HTTP_CHECK := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/check-http.ps1
 TENANCY_CHECK_SCRIPT := powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/tenancy-check.ps1
 else
@@ -16,6 +18,8 @@ RESET_SCRIPT := sh scripts/reset-project.sh
 HTTPS_SCRIPT := sh scripts/https-setup.sh
 STATUS_SCRIPT := sh scripts/status.sh
 PREFLIGHT_SCRIPT := sh scripts/preflight.sh
+HOST_PREPARE := sh scripts/environment.sh apply
+HOST_DOCTOR := sh scripts/environment.sh doctor
 HTTP_CHECK := sh scripts/check-http.sh
 TENANCY_CHECK_SCRIPT := sh scripts/tenancy-check.sh
 endif
@@ -26,14 +30,14 @@ STARTER ?=
 # Explicit all-profiles stop also removes containers started manually through a
 # profile not included in the current .env.
 ALL_PROFILES := --profile dev --profile tools --profile workers --profile scheduler --profile redis --profile https --profile postgres --profile mariadb --profile mysql --profile phpmyadmin --profile mailpit --profile pgweb --profile adminer
-.PHONY: help check status setup reconfigure up up-detached up-wait up-logs start stop restart down build images rebuild ps logs shell artisan composer npm migrate test lint backup env-sync https-setup reset-project worker scheduler redis config tenancy-check
+.PHONY: help check status doctor host-config setup reconfigure up up-detached up-wait up-logs start stop restart down build images rebuild ps logs shell artisan composer npm migrate test lint backup env-sync https-setup reset-project worker scheduler redis config tenancy-check
 
 help:
 	@echo "Laravel Foundry - self-hosted Laravel environments with Docker Compose"
 	@echo ""
 	@echo "Setup:       make setup [STARTER=laravel|svelte|vue|react|livewire]"
 	@echo "Lifecycle:   make up | up-wait | up-logs | start | stop | restart | down"
-	@echo "Environment: make build | rebuild (restore settings, dependencies and assets)"
+	@echo "Environment: make build | rebuild | doctor | host-config"
 	@echo "Images only: make images"
 	@echo "Diagnostics: make check | status | ps | logs | config | shell"
 	@echo "Laravel:     make artisan CMD='route:list' | migrate | test | lint"
@@ -45,6 +49,7 @@ help:
 	@echo "WARNING: reset-project removes generated app files and Docker volumes."
 
 setup:
+	$(HOST_PREPARE)
 	$(SETUP_SCRIPT) $(if $(strip $(STARTER)),$(if $(filter Windows_NT,$(OS)),-Starter "$(STARTER)","$(STARTER)"),)
 
 reconfigure:
@@ -63,16 +68,19 @@ up:
 up-detached: up
 
 up-wait:
+	$(HOST_PREPARE)
 	$(PREFLIGHT_SCRIPT)
 	$(DC) up -d --wait --wait-timeout 120
 	-$(HTTP_CHECK)
 	-$(STATUS_SCRIPT)
 
 up-logs:
+	$(HOST_PREPARE)
 	$(DC) up
 
 # Retain containers/networks for fast daily resume; no destructive operations.
 start:
+	$(HOST_PREPARE)
 	$(PREFLIGHT_SCRIPT)
 	$(DC) start
 	-$(STATUS_SCRIPT)
@@ -89,10 +97,17 @@ down:
 build: setup
 
 images:
+	$(HOST_PREPARE)
 	$(DC) build app composer node
 
 rebuild: build
 	$(DC) up -d --wait --wait-timeout 120 --force-recreate
+
+doctor:
+	$(HOST_DOCTOR)
+
+host-config:
+	$(HOST_PREPARE)
 
 check:
 	$(PREFLIGHT_SCRIPT)
