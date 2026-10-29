@@ -16,6 +16,7 @@ if ($PSVersionTable.PSVersion.Major -ge 6 -and -not $IsWindows) {
         $location = 'linux-filesystem'
         $uid = [int](& id -u)
         $gid = [int](& id -g)
+        if ($uid -eq 0) { $uid = 1000; $gid = 1000 }
         if ((Test-Path '/proc/sys/kernel/osrelease') -and ((Get-Content '/proc/sys/kernel/osrelease' -Raw) -match 'microsoft')) {
             $profile = 'wsl-native'
             if ($root -match '^/mnt/[a-zA-Z]/') { $profile = 'wsl-windows-fs'; $location = 'windows-mounted' }
@@ -35,6 +36,9 @@ if ($Mode -eq 'Apply') {
         foreach ($service in @('app','composer','node','worker','scheduler')) {
             $lines += ('  {0}:' -f $service)
             $lines += ('    user: "{0}:{1}"' -f $uid,$gid)
+            if ($service -eq 'composer') {
+                $lines += @('    environment:', ('      DEV_UID: "{0}"' -f $uid), ('      DEV_GID: "{0}"' -f $gid))
+            }
             if ($service -eq 'node' -and $profile -in @('windows-native','wsl-windows-fs','linux-shared-fs')) {
                 $lines += @('    environment:', '      CHOKIDAR_USEPOLLING: "true"', '      CHOKIDAR_INTERVAL: "700"')
             }

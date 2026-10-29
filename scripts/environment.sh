@@ -13,6 +13,8 @@ gid=1000
 case "$host" in
   Linux)
     uid=$(id -u); gid=$(id -g)
+    # Root on CI or in a toolbox is not a safe default for an application runtime.
+    if [ "$uid" = 0 ]; then uid=1000; gid=1000; fi
     if grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null || [ -n "${WSL_INTEROP:-}" ]; then
       profile=wsl-native
     else
@@ -59,6 +61,9 @@ write_override() {
     printf 'services:\n'
     for service in app composer node worker scheduler; do
       printf '  %s:\n    user: "%s:%s"\n' "$service" "$uid" "$gid"
+      if [ "$service" = composer ]; then
+        printf '    environment:\n      DEV_UID: "%s"\n      DEV_GID: "%s"\n' "$uid" "$gid"
+      fi
       if [ "$service" = node ] && [ "$polling" = true ]; then
         printf '    environment:\n      CHOKIDAR_USEPOLLING: "true"\n      CHOKIDAR_INTERVAL: "700"\n'
       fi
